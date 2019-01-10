@@ -1,0 +1,15 @@
+begin
+read(a);
+s=0;
+i=0;
+break;
+while(i<a) do
+	s=s+i;
+	i=i+1;
+	if(i==4) then
+		break;
+	endif;
+endwhile;
+continue;
+write(s);
+end

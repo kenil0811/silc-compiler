@@ -1,0 +1,12 @@
+begin
+read(a);
+s=0;
+i=6;
+break;
+repeat
+	s=s+i;
+	i=i+1;
+until (i<a);
+continue;
+write(s);
+end
