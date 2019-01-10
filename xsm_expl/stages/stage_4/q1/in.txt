@@ -1,0 +1,6 @@
+decl
+	int ast,b;
+	int crt;
+	str asc, vfg, rg;
+	int ast;
+enddecl

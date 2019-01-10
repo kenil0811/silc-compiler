@@ -1,0 +1,16 @@
+begin
+a=0;
+s=0;
+while(a<3) do
+	b=0;
+	while(b<3) do
+		read(c);
+		if(c==0) then
+			break;
+		endif;
+		s=s+c;
+		b=b+1;
+	endwhile;
+	a=a+1;
+endwhile;
+end
