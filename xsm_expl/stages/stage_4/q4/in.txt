@@ -1,16 +1,10 @@
 decl
-int num, sum;
-str mesg;
+int a,b;
+int *t1, *t2, *t3;
 enddecl
 begin
-read(num);
-sum = 0;
-while (num != 0) do
-sum = sum + num;
-read(num);
-endwhile;
-write("sum is:");
-write(sum);
-mesg = "good bye";
-write(mesg);
+	read(a);
+	t1=&a;
+	*t1 = *t1 + 1;
+	write(a);
 end

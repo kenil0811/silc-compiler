@@ -1,4 +1,4 @@
-#define INTTYPE 0
+#define INTTYPE 40
 #define BOOLTYPE 1
 #define PLUS_ 2
 #define MINUS_ 3
@@ -32,6 +32,7 @@
 #define MOD_ 31
 #define PTRTYPE 32
 #define PTR_ 33
+#define ADDPTR_ 34
 
 
 typedef struct tnode{

@@ -44,7 +44,7 @@
 [ \t]	{}
 "["		{return *yytext;}
 "]"		{return *yytext;}
-[()=;,]	{return *yytext;}
+[()=;,&]	{return *yytext;}
 [\n]	{}
 [0-9]+	{number = atoi(yytext); yylval.t = makeLeafNumNode(number, INTTYPE, NUM_); return NUM;}
 [a-zA-Z]+[a-zA-Z0-9_]*	{arr= (char *)malloc(20*sizeof(char)); strcpy(arr,yytext);
@@ -53,7 +53,7 @@
 			for(int i=1; i<yyleng-1; i++)
 				arr[i-1]=yytext[i];
 			yylval.t = makeLeafStringNode(arr, STRTYPE, STR_);
-			return STR;
+			return STR1;
 			}
 
 .	{yyerror("unknown character\n");exit(1);}

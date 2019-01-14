@@ -10,9 +10,9 @@
 %}
 
 %union {struct tnode *t;}
-%token NUM VAR BEG END READ WRITE IF THEN ELSE WHILE DO ENDWHILE ENDIF BREAK CONTINUE REPEAT UNTIL DECL ENDDECL INT STR
+%token NUM STR1 VAR BEG END READ WRITE IF THEN ELSE WHILE DO ENDWHILE ENDIF BREAK CONTINUE REPEAT UNTIL DECL ENDDECL INT STR
 %token PLUS MINUS MUL DIV MOD LT GT LTE GTE NE EQ
-%type <t> NUM VAR STR expr Slist Stmt InStmt OutStmt AsgStmt IfStmt WhileStmt BrkStmt DoWhileStmt Type VarList pgm Variable 
+%type <t> NUM VAR STR1 STR expr Slist Stmt InStmt OutStmt AsgStmt IfStmt WhileStmt BrkStmt DoWhileStmt Type VarList pgm Variable 
 %nonassoc LT GT LTE GTE EQ NE
 %left PLUS MINUS
 %left MUL DIV MOD
@@ -48,9 +48,10 @@ Type 	:	INT {$$ = createTypeNode(INTTYPE);}
 
 VarList	:	VarList ',' VAR {insertSymbol($3->varname, 1, 1); $3->left=$1; $$=$3;}
 		|	VarList ',' VAR '[' NUM ']' {insertSymbol($3->varname, $5->val, 1); $3->left=$1; $$=$3;}
-		|	VarList ',' VAR '[' NUM ']' '[' NUM ']'	{insertSymbol($3->varname, $5, $8); $3->left=$1; $$=$3;}
+		|	VarList ',' VAR '[' NUM ']' '[' NUM ']'	{ insertSymbol($3->varname, $5->val, $8->val); $3->left=$1; $$=$3;}
+		|	VarList ',' MUL VAR 	{insertSymbol($4->varname, 1, 1); $4->left=$1; $$=$4;}
 		|	VAR '[' NUM ']'	{insertSymbol($1->varname, $3->val, 1); $1->left=NULL; $$=$1;}
-		|	VAR '[' NUM ']' '[' NUM ']'	{insertSymbol($1->varname, $3->val, $6->val); $1->left=NULL; $$=$1;}
+		|	VAR '[' NUM ']' '[' NUM ']'	{  insertSymbol($1->varname, $3->val, $6->val); $1->left=NULL; $$=$1;}
 		|	VAR		{insertSymbol($1->varname, 1, 1); $1->left=NULL; $$=$1;}	
 		|	MUL VAR 		{insertSymbol($2->varname, 1, 1); $2->left=NULL; $$=$2;}
 		;
@@ -74,7 +75,7 @@ InStmt	:	READ '(' Variable ')' ';'	{$$ = makeIONode(READ_, $3);}
 OutStmt	:	WRITE '(' expr ')' ';'	{$$ = makeIONode(WRITE_, $3);}
 		;
 
-AsgStmt	:	Variable '=' expr ';'		{$$ = makeOperatorNode(ASSIGN_, NOTYPE_, $1,$3);}
+AsgStmt	:	Variable '=' expr ';'		{  $$ = makeAssignNode(ASSIGN_, NOTYPE_, $1,$3);}
 		;
 
 IfStmt	: IF '(' expr ')' THEN Slist ELSE Slist ENDIF ';'	{$$ = makeIfElseNode(IF_, BOOLTYPE, $3, $6, $8);}
@@ -107,32 +108,47 @@ expr 	:	expr PLUS expr	{$$ = makeOperatorNode(PLUS_, INTTYPE, $1,$3);}
 		|  '(' expr ')'		{$$ = $2;}
 	 	|   NUM				{$$ = $1;}
 	 	|   Variable		{$$ = $1;}
-	 	|	STR 			{$$ = $1;}
+	 	|	STR1 			{$$ = $1; }
 		;
 
-Variable: 	VAR 	{if(lookup($1->varname) == NULL) {
+Variable: 	VAR 	{struct Gsymbol *temp = lookup($1->varname);
+					if(temp == NULL) {
 						printf("%s undeclared\n", $1->varname);	exit(0);}
 					$1->nodetype = VAR_;
+					$1->type = temp->type;
 					$$=$1;
 					}
-		|	VAR '[' expr ']'	{if(lookup($1->varname)==NULL) {
+		|	VAR '[' expr ']'	{struct Gsymbol *temp = lookup($1->varname);
+								if(temp==NULL) {
 									printf("%s undeclared\n", $1->varname); exit(0);}
 								$1->left = $3;
 								$1->nodetype = ARR_;
+								$1->type = temp->type;
 								$$ = $1;
 								}
-		|	VAR '[' expr ']' '[' expr ']'	{if(lookup($1->varname)==NULL) {
+		|	VAR '[' expr ']' '[' expr ']'	{struct Gsymbol *temp = lookup($1->varname);
+											if(temp==NULL) {
 												printf("%s undeclared\n", $1->varname); exit(0); }
 											$1->left = $3;
 											$1->right = $6;
 											$1->nodetype = DARR_;
+											$1->type = temp->type;
 											$$ = $1;
 											}
-		|	MUL VAR 	{if(lookup($2->varname) == NULL) {
+		|	MUL VAR 	{struct Gsymbol *temp = lookup($2->varname);
+						if(temp == NULL) {
 							printf("%s undeclared\n", $2->varname); exit(0);}
 						$2->nodetype = PTR_;
-						$$ = $1;	
+						$2->type = temp->type;
+						$$ = $2;
+
 						}
+		|	'&' VAR 	{struct Gsymbol *temp = lookup($2->varname);
+						if(temp == NULL) {
+							printf("%s undeclared\n", $2->varname); exit(0);}
+						$2->nodetype = ADDPTR_;
+						$2->type = temp->type;
+						$$ = $2;}
 		;
 
 					

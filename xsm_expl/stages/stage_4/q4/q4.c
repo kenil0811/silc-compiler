@@ -16,6 +16,8 @@ struct tnode* createTree(int val,int type, char* c, int nodetype, struct Gsymbol
 }
 
 
+
+
 struct tnode* makeLeafNumNode(int n, int type, int nodetype) {
     return createTree(n, type, NULL, nodetype ,NULL ,NULL, NULL, NULL);
 }
@@ -32,21 +34,35 @@ struct tnode* createTypeNode(int type) {
     return createTree(NULL, type, NULL, NONE_, NULL, NULL, NULL, NULL);
 }
 
+struct tnode* makeAssignNode(int nodetype, int type, struct tnode *l,struct tnode *r) {
+    struct tnode *temp = createTree(NULL, type, NULL, nodetype, NULL, l, NULL, r);
+    //printf("%d,%d,%d,%d,%d,%d\n", nodetype, type, l->type, r->type, l->nodetype, r->nodetype);
+    if(l->type != r->type) {
+        printf("h2\n");
+        printf("TYPE MISMATCH\n");
+        exit(0);
+    }
+    return temp;
+
+}    
+
 struct tnode* makeOperatorNode(int nodetype, int type, struct tnode *l,struct tnode *r) {
     struct tnode *temp = createTree(NULL, type, NULL, nodetype, NULL, l, NULL, r);
     if (nodetype!=CONN_ && nodetype!=BREAK_ && nodetype!=CONT_) {
-        if (nodetype == WHILE_) 
+
+   // printf("%d %d %d %d %d,\n", nodetype, l->nodetype, r->nodetype, l->type, r->type);
+        if (nodetype == WHILE_) {
             if(l->type != BOOLTYPE) {
                 printf("h4\n");
                 printf("TYPE MISMATCH\n");
                 exit(0);
-            }
-        else if (nodetype == DOWHILE_)
+            }}
+        else if (nodetype == DOWHILE_) {
             if(r->type != BOOLTYPE) {
                 printf("h3\n");
                 printf("TYPE MISMATCH\n");
                 exit(0);
-            }
+            }}
         else if(l->type != r->type) {
             printf("h2\n");
             printf("TYPE MISMATCH\n");
@@ -111,7 +127,7 @@ void assignCode(int reg, int reg2, FILE *f) {
     return;
 }
 
-int reg1,reg2,addr,label1[20],label2[20];
+
 
 int k=0;
 
@@ -131,17 +147,20 @@ int getAddr(struct tnode *t, FILE *f) {
                         fprintf(f, "ADD R%d, %d\n", reg1, t->entry->binding);
                         freeReg();
                         return reg1;
+        case PTR_   :   reg=getReg();
+                        fprintf(f, "MOV R%d, [%d]\n", reg, t->entry->binding);
+                        return reg;
     }
 
 }
 
-
+int label1,label2;
 int codeGen(struct tnode *t, FILE *f) {
 
     if (t==NULL)
         return 0;
 
-int reg1,reg2,addr,label3,label4,reg,pos;
+int reg1,reg2,addr,label3,label4,reg,pos,temp_l1,temp_l2;
 
     switch(t->nodetype) {
         case NUM_   :   reg = getReg();
@@ -150,6 +169,15 @@ int reg1,reg2,addr,label3,label4,reg,pos;
         case VAR_   :   pos = t->entry->binding ;
                         reg = getReg();
                         fprintf(f, "MOV R%d, [%d]\n",reg, pos);
+                        return reg;
+        case PTR_   :   pos = t->entry->binding ;
+                        reg = getReg();
+                        fprintf(f, "MOV R%d, [%d]\n",reg, pos);
+                        fprintf(f, "MOV R%d, [R%d]\n", reg, reg);
+                        return reg;
+        case ADDPTR_:   pos = t->entry->binding;
+                        reg = getReg();
+                        fprintf(f , "MOV R%d, %d\n",reg, pos);
                         return reg;
         case ARR_   :   reg = codeGen(t->left, f);
                         fprintf(f, "ADD R%d, %d\n", reg, t->entry->binding);
@@ -183,8 +211,7 @@ int reg1,reg2,addr,label3,label4,reg,pos;
                         writeCode(reg1, f);
                         freeReg();
                         return 0;
-        case ASSIGN_ :  
-                        reg1 = getAddr(t->left, f);
+        case ASSIGN_ :  reg1 = getAddr(t->left, f);
                         reg2 = codeGen(t->right, f);
                         assignCode(reg1, reg2, f);
                         freeReg();
@@ -234,16 +261,15 @@ int reg1,reg2,addr,label3,label4,reg,pos;
                         reg2 = codeGen(t->right, f);
                         fprintf(f, "NE R%d, R%d\n", reg1, reg2);
                         break;
-        case WHILE_ :   in_loop++;
-                        label1[in_loop] = getLabel();
-                        label2[in_loop] = getLabel();
-                        fprintf(f, "L%d:\n", label1[in_loop]);
+        case WHILE_ :   label1 = getLabel();
+                        label2 = getLabel();
+                        temp_l1=label1; temp_l2=label2;
+                        fprintf(f, "L%d:\n", temp_l1);
                         reg1 = codeGen(t->left, f);
-                        fprintf(f, "JZ R%d, L%d\n", reg1, label2[in_loop]);
+                        fprintf(f, "JZ R%d, L%d\n", reg1, temp_l2);
                         reg1 = codeGen(t->right, f);
-                        fprintf(f, "JMP L%d\n", label1[in_loop]);
-                        fprintf(f, "L%d:\n", label2[in_loop]);
-                        in_loop--;
+                        fprintf(f, "JMP L%d\n", temp_l1);
+                        fprintf(f, "L%d:\n", temp_l2);
                         return 0;
         case IF_    :   label3 = getLabel();
                         label4 = getLabel();
@@ -255,24 +281,19 @@ int reg1,reg2,addr,label3,label4,reg,pos;
                         reg1 = codeGen(t->mid, f);
                         fprintf(f, "L%d:\n", label4);
                         return 0;
-        case BREAK_ :   if(in_loop>0) {
-                            fprintf(f, "JMP L%d\n", label2[in_loop]);
-                        }
+        case BREAK_ :   fprintf(f, "JMP L%d\n", label2);
                         return 0;
-        case CONT_  :   if (in_loop>0) {
-                            fprintf(f, "JMP L%d\n", label1[in_loop]);
-                        }
+        case CONT_  :   fprintf(f, "JMP L%d\n", label1);
                         return 0;
-        case DOWHILE_ : in_loop++;
-                        label1[in_loop] = getLabel();
-                        label2[in_loop] = getLabel();
-                        fprintf(f, "L%d:\n", label1[in_loop]);
+        case DOWHILE_ : label1 = getLabel();
+                        label2 = getLabel();
+                        temp_l1=label1; temp_l2=label2;
+                        fprintf(f, "L%d:\n", temp_l1);
                         reg1 = codeGen(t->left, f);
                         reg1 = codeGen(t->right, f);
-                        fprintf(f, "JZ R%d, L%d\n", reg1, label2[in_loop]);
-                        fprintf(f, "JMP L%d\n", label1[in_loop]);
-                        fprintf(f, "L%d:\n", label2[in_loop]);
-                        in_loop--;
+                        fprintf(f, "JZ R%d, L%d\n", reg1, temp_l2);
+                        fprintf(f, "JMP L%d\n", temp_l1);
+                        fprintf(f, "L%d:\n", temp_l2);
                         return 0;                  
         }
 

@@ -46,72 +46,74 @@ extern int yydebug;
   enum yytokentype
   {
     NUM = 258,
-    VAR = 259,
-    BEG = 260,
-    END = 261,
-    READ = 262,
-    WRITE = 263,
-    IF = 264,
-    THEN = 265,
-    ELSE = 266,
-    WHILE = 267,
-    DO = 268,
-    ENDWHILE = 269,
-    ENDIF = 270,
-    BREAK = 271,
-    CONTINUE = 272,
-    REPEAT = 273,
-    UNTIL = 274,
-    DECL = 275,
-    ENDDECL = 276,
-    INT = 277,
-    STR = 278,
-    PLUS = 279,
-    MINUS = 280,
-    MUL = 281,
-    DIV = 282,
-    MOD = 283,
-    LT = 284,
-    GT = 285,
-    LTE = 286,
-    GTE = 287,
-    NE = 288,
-    EQ = 289
+    STR1 = 259,
+    VAR = 260,
+    BEG = 261,
+    END = 262,
+    READ = 263,
+    WRITE = 264,
+    IF = 265,
+    THEN = 266,
+    ELSE = 267,
+    WHILE = 268,
+    DO = 269,
+    ENDWHILE = 270,
+    ENDIF = 271,
+    BREAK = 272,
+    CONTINUE = 273,
+    REPEAT = 274,
+    UNTIL = 275,
+    DECL = 276,
+    ENDDECL = 277,
+    INT = 278,
+    STR = 279,
+    PLUS = 280,
+    MINUS = 281,
+    MUL = 282,
+    DIV = 283,
+    MOD = 284,
+    LT = 285,
+    GT = 286,
+    LTE = 287,
+    GTE = 288,
+    NE = 289,
+    EQ = 290
   };
 #endif
 /* Tokens.  */
 #define NUM 258
-#define VAR 259
-#define BEG 260
-#define END 261
-#define READ 262
-#define WRITE 263
-#define IF 264
-#define THEN 265
-#define ELSE 266
-#define WHILE 267
-#define DO 268
-#define ENDWHILE 269
-#define ENDIF 270
-#define BREAK 271
-#define CONTINUE 272
-#define REPEAT 273
-#define UNTIL 274
-#define DECL 275
-#define ENDDECL 276
-#define INT 277
-#define STR 278
-#define PLUS 279
-#define MINUS 280
-#define MUL 281
-#define DIV 282
-#define MOD 283
-#define LT 284
-#define GT 285
-#define LTE 286
-#define GTE 287
-#define NE 288
-#define EQ 289
+#define STR1 259
+#define VAR 260
+#define BEG 261
+#define END 262
+#define READ 263
+#define WRITE 264
+#define IF 265
+#define THEN 266
+#define ELSE 267
+#define WHILE 268
+#define DO 269
+#define ENDWHILE 270
+#define ENDIF 271
+#define BREAK 272
+#define CONTINUE 273
+#define REPEAT 274
+#define UNTIL 275
+#define DECL 276
+#define ENDDECL 277
+#define INT 278
+#define STR 279
+#define PLUS 280
+#define MINUS 281
+#define MUL 282
+#define DIV 283
+#define MOD 284
+#define LT 285
+#define GT 286
+#define LTE 287
+#define GTE 288
+#define NE 289
+#define EQ 290
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -121,7 +123,7 @@ union YYSTYPE
 #line 12 "q4.y" /* yacc.c:1909  */
 struct tnode *t;
 
-#line 125 "y.tab.h" /* yacc.c:1909  */
+#line 127 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
