@@ -1,0 +1,23 @@
+decl
+    int i,j,sum,arr[4][4];
+enddecl
+begin
+	i=0;
+	while(i<4) do
+		j=0;
+		while(j<3) do
+		read(arr[i][j]);
+		if(arr[i][j]>10) then
+			break;
+		else
+			sum = sum + arr[i][j];
+		endif;
+		j=j+1;
+	endwhile;
+	write("loop");
+	i=i+1;
+	endwhile;
+write(i);
+write(j);
+write(sum);
+end
