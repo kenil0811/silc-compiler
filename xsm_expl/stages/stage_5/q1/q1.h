@@ -61,11 +61,17 @@ struct Param {
 	struct Param *next;
 };
 
-struct Lsymbol {
+struct Lentry {
 	char *name;
 	int type;
 	int binding;
-	struct Lsymbol *next;
+	struct Lentry *next;
+};
+
+struct Ltable {
+	char *funcname;
+	struct Lentry *entry;
+	struct Ltable *next;
 };
 
 

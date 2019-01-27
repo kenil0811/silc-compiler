@@ -9,7 +9,10 @@
 	int reg;
 %}
 
-%union {struct tnode *t;}
+%union {
+	struct tnode *t;
+	struct Param *p;
+}
 %token NUM STR1 VAR BEG END READ WRITE IF THEN ELSE WHILE DO ENDWHILE ENDIF BREAK CONTINUE REPEAT UNTIL DECL ENDDECL INT STR MAIN
 %token PLUS MINUS MUL DIV MOD LT GT LTE GTE NE EQ
 %type <t> NUM VAR STR1 STR expr Slist Stmt InStmt OutStmt AsgStmt IfStmt WhileStmt BrkStmt DoWhileStmt Type VarList pgm Variable 
@@ -36,24 +39,27 @@ GDeclList	: GDeclList GDecl 	{}
 			| GDecl	{}
 			;
 
-GDecl 	: Type GVarList	';'	{}
+GDecl 	: Type GVarList	';'	{assignType($1->type, $2);}
 		;
 
-GVarList: GVarList ',' GVar	{}
-		|			
+GVarList: GVarList ',' GVar	{$3->left=$1; $$=$3;}
+		| GVar	{$1->left=NULL; $$=$1;}			
 
-GVar	: VAR	{}
-		| VAR '[' NUM ']'	{}
-		| VAR '[' NUM ']' '[' NUM ']'  {}
-		| MUL VAR	{}
-		| VAR '(' ParamList ')'	{}
+
+GVar	: VAR	{insertSymbol($1->varname, 1, 1); $1->left=NULL; $$=$1;}
+		| VAR '[' NUM ']'	{insertSymbol($1->varname, $3->val, 1); $1->left=NULL; $$=$1;}
+		| VAR '[' NUM ']' '[' NUM ']'  {insertSymbol($1->varname, $3->val, $6->val); $1->left=NULL; $$=$1;}
+		| MUL VAR	{insertSymbol($2->varname, 1, 1); $2->left=NULL; $$=$2;}
+		| Fname '(' ParamList ')'	{insertFunction($1->varname, $3); $$=$1;}
 		;
 
-ParamList	: ParamList ',' Param	{}
-			| Param	{}
+Fname	: VAR	{$$=$1; currFunc=strdup($1->name);}
+
+ParamList	: ParamList ',' Param	{$3->next=$1; $$=$3;}
+			| Param	{$1->next=NULL; $$=$1;}
 			;
 
-Param	: TYPE VAR	{}
+Param	: TYPE VAR	{$$ = createParam($1->type, $2->varname);}
 		;
 
 
@@ -61,8 +67,20 @@ FDefBlock	: FDefBlock FDef	{}
 			| FDef	{}
 			;
 
-FDef	: TYPE VAR '(' ParamList ')' '{' LDeclBlock Body '}'	{}
+FDef	: TYPE Fname2 '(' VParamList ')' '{' LDeclBlock Body '}'	{}
 		;
+
+Fname2	: VAR	{struct Gsymbol *entry = lookup($1->name);
+				if(entry == NULL) {
+					printf("Function not declared\n"); exit(0);}
+				createLocalTable($1->name);
+				currFunc = strdup($1->name);
+				}
+		;
+
+VParamList	: ParamList	{checkParamValidity(currFunc);}
+
+
 
 LDeclBlock	: DECL LDeclList END {}
 			| DECL END	{}
