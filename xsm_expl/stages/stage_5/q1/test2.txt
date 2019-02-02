@@ -1,0 +1,21 @@
+decl
+	int p,q,r,s;
+	int function(int a, str b);
+enddecl
+int function(int a, str b) {
+	begin
+		return 0;
+	end
+}
+
+int main() {
+	decl
+		int n, result;
+	enddecl
+	begin
+		read(n);
+		result = function(n+1, "hii");
+		write(result);
+		return 0;
+	end
+}

@@ -67,17 +67,21 @@ extern int yydebug;
     ENDDECL = 277,
     INT = 278,
     STR = 279,
-    PLUS = 280,
-    MINUS = 281,
-    MUL = 282,
-    DIV = 283,
-    MOD = 284,
-    LT = 285,
-    GT = 286,
-    LTE = 287,
-    GTE = 288,
-    NE = 289,
-    EQ = 290
+    MAIN = 280,
+    RETURN = 281,
+    PLUS = 282,
+    MINUS = 283,
+    MUL = 284,
+    DIV = 285,
+    MOD = 286,
+    LT = 287,
+    GT = 288,
+    LTE = 289,
+    GTE = 290,
+    NE = 291,
+    EQ = 292,
+    AND = 293,
+    OR = 294
   };
 #endif
 /* Tokens.  */
@@ -103,27 +107,33 @@ extern int yydebug;
 #define ENDDECL 277
 #define INT 278
 #define STR 279
-#define PLUS 280
-#define MINUS 281
-#define MUL 282
-#define DIV 283
-#define MOD 284
-#define LT 285
-#define GT 286
-#define LTE 287
-#define GTE 288
-#define NE 289
-#define EQ 290
+#define MAIN 280
+#define RETURN 281
+#define PLUS 282
+#define MINUS 283
+#define MUL 284
+#define DIV 285
+#define MOD 286
+#define LT 287
+#define GT 288
+#define LTE 289
+#define GTE 290
+#define NE 291
+#define EQ 292
+#define AND 293
+#define OR 294
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 
 union YYSTYPE
 {
-#line 12 "q4.y" /* yacc.c:1909  */
-struct tnode *t;
+#line 12 "q1.y" /* yacc.c:1909  */
 
-#line 127 "y.tab.h" /* yacc.c:1909  */
+	struct tnode *t;
+	struct Param *p;
+
+#line 137 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;

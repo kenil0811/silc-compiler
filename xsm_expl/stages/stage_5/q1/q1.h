@@ -33,6 +33,12 @@
 #define PTRTYPE 32
 #define PTR_ 33
 #define ADDPTR_ 34
+#define RET_ 35
+#define BODY_ 36
+#define FUNC_ 37
+#define FCALL_ 38
+#define AND_ 41
+#define OR_ 42
 
 
 typedef struct tnode{
@@ -40,9 +46,11 @@ typedef struct tnode{
 	int type;			//type of variable
 	char *varname;		//name of variables for id nodes
 	int nodetype;		//information about non-leaf nodes (read/write/connector/+-*/)
-	struct tnode *left,*right, *mid;  	//left and right branches
-	struct Gsymbol *entry;
+	struct tnode *left,*right, *mid, *arglist;  	//left and right branches
+	struct TableEntry *entry;
+
 }tnode;
+
 
 struct Gsymbol {
 	char* name;
@@ -53,6 +61,13 @@ struct Gsymbol {
 	struct Param *paramlist;
 	int flabel;
 	struct Gsymbol *next;
+};
+
+struct TableEntry {
+	struct Gsymbol *gentry;
+	struct Lentry *locentry;
+	struct Ltable *fentry;
+	int isGlobal;
 };
 
 struct Param {
@@ -110,8 +125,13 @@ int codeGen(struct tnode *t, FILE *f);
 void insertSymbol(char *name, int size1, int size2);
 
 // Returns a pointer to the symbol table entry for the variable, returns NULL otherwise.
-struct Gsymbol *lookup(char *name);
+struct Gsymbol *gLookup(char *name);
+
+struct TableEntry *lookup(char *varname);
 
 int getLocation();
 void assignType(int type, struct tnode *varlist);
 void displayTable();
+void freeAllReg();
+void resetLocalSpace();
+struct Ltable* funcLookup(char *funcname);

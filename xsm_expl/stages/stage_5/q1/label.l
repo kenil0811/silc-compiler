@@ -18,6 +18,7 @@
 %}
 
 label	[L]
+funclabel	[F]
 digit	[0-9]+
 colon	[:]
 quit	[q]
@@ -28,7 +29,7 @@ pos		"2056"
 
 %%
 
-([0][\n])|({pos}[\n])		{if(pass==1) {
+([0][\n])		{if(pass==1) {
 					fprintf(temp, "%s", yytext);
 					currline++;
 				}
@@ -37,20 +38,49 @@ pos		"2056"
 				}
 				}
 
-"J"(.*)[\n]		{if(pass==1) {
+("J"(.*)[\n])	{if(pass==1) {
 					fprintf(temp, "%s", yytext);
 					currline += 2;
-				} else {
+				} 
+				else {
 					id = yytext[yyleng-2]-'0'; int add = find_addr(id);
 					char *str = (char*)malloc(yyleng*sizeof(char));
-					for(int i=0; yytext[i]!='L' && i<yyleng; i++){
+					for(int i=0; i<yyleng-3; i++){
 						str[i] = yytext[i];
 					}
-
-					fprintf(out, "%s%d\n",str, add);}
+					fprintf(out, "%s%d\n",str, add);
+				}
 				}
 
+("CALL F"{digit}[\n])	{if(pass==1) {
+							fprintf(temp, "%s", yytext);
+							currline += 2;
+						} 
+						else {
+							id = yytext[yyleng-2]-'0'; int add = find_addr(id+100);
+							char *str = (char*)malloc(yyleng*sizeof(char));
+							for(int i=0; i<yyleng-3; i++){
+								str[i] = yytext[i];
+							}
+							fprintf(out, "%s%d\n",str, add);
+						}
+						}				
 
+"MAIN:"[\n]	{add_to_table(200, currline);}
+"MAIN"[\n]	{if(pass==1) {
+				fprintf(temp, "%s", yytext);
+				currline++;
+			}
+			if(pass==2) { 
+			int add = find_addr(200);
+			//printf("%dadd%d\n",add,currline );
+			fprintf(out, "%d\n", add);
+			}
+			}
+
+
+
+{funclabel}{digit}{colon}[\n]	{id = yytext[1]-'0'; id += 100; add_to_table(id, currline);}
 {label}{digit}{colon}(.*)[\n]	{ id = yytext[1]-'0'; add_to_table(id, currline); }
 
 (.*)[\n]	{	if(pass==1) {

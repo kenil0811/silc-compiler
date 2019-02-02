@@ -13,26 +13,37 @@
 	struct tnode *t;
 	struct Param *p;
 }
-%token NUM STR1 VAR BEG END READ WRITE IF THEN ELSE WHILE DO ENDWHILE ENDIF BREAK CONTINUE REPEAT UNTIL DECL ENDDECL INT STR MAIN
-%token PLUS MINUS MUL DIV MOD LT GT LTE GTE NE EQ
-%type <t> NUM VAR STR1 STR expr Slist Stmt InStmt OutStmt AsgStmt IfStmt WhileStmt BrkStmt DoWhileStmt Type VarList pgm Variable 
+%token NUM STR1 VAR BEG END READ WRITE IF THEN ELSE WHILE DO ENDWHILE ENDIF BREAK CONTINUE REPEAT UNTIL DECL ENDDECL INT STR MAIN RETURN
+%token PLUS MINUS MUL DIV MOD LT GT LTE GTE NE EQ AND OR
+%type <t> NUM VAR STR1 STR expr Slist Stmt InStmt OutStmt AsgStmt IfStmt WhileStmt BrkStmt DoWhileStmt
+%type <t> RetStmt Type Variable FDefBlock MainBlock GDecl GVarList LVarList LVar GVar Fname Body FDef ArgList
+%type <p> ParamList Param ParamDeclList
 %nonassoc LT GT LTE GTE EQ NE
 %left PLUS MINUS
 %left MUL DIV MOD
 
 %%
 
-progran : GDeclBlock FDefBlock MainBlock {fprintf(out, "%d\n%d\n%d\n%d\n%d\n%d\n%d\n%d\n",0,2056,0,0,0,0,0,0);
+program : GDeclBlock FDefBlock MainBlock {showTables();
+										fprintf(out, "%d\nMAIN\n%d\n%d\n%d\n%d\n%d\n%d\n",0,0,0,0,0,0,0);
 										fprintf(out, "MOV SP,%d\n",location+1);
+										//printf("lol\n");
 										codeGen($2, out);
-										freeregs();
+										freeAllReg();
 										codeGen($3, out);
 										fprintf(out, " MOV R2,\"Exit\"\nPUSH R2\nPUSH R2\nPUSH R2\nPUSH R2\nPUSH R2\nCALL 0\nPOP R2\nPOP R2\n POP R2\n POP R2\n POP R2\n");
 										return;
 										}
+		| GDeclBlock MainBlock {fprintf(out, "%d\nMAIN\n%d\n%d\n%d\n%d\n%d\n%d\n",0,0,0,0,0,0,0);
+								fprintf(out, "MOV SP,%d\n",location+1);
+								codeGen($2, out);
+								fprintf(out, " MOV R2,\"Exit\"\nPUSH R2\nPUSH R2\nPUSH R2\nPUSH R2\nPUSH R2\nCALL 0\nPOP R2\nPOP R2\n POP R2\n POP R2\n POP R2\n");
+								return; 
+								}
 		;
 
-GDeclBlock	: DECL GDeclList END {}
+GDeclBlock	: DECL GDeclList ENDDECL {}
+            |   {}
 			;
 
 GDeclList	: GDeclList GDecl 	{}
@@ -43,106 +54,95 @@ GDecl 	: Type GVarList	';'	{assignType($1->type, $2);}
 		;
 
 GVarList: GVarList ',' GVar	{$3->left=$1; $$=$3;}
-		| GVar	{$1->left=NULL; $$=$1;}			
+		| GVar	{$1->left=NULL; $$=$1;}
 
 
 GVar	: VAR	{insertSymbol($1->varname, 1, 1); $1->left=NULL; $$=$1;}
 		| VAR '[' NUM ']'	{insertSymbol($1->varname, $3->val, 1); $1->left=NULL; $$=$1;}
 		| VAR '[' NUM ']' '[' NUM ']'  {insertSymbol($1->varname, $3->val, $6->val); $1->left=NULL; $$=$1;}
 		| MUL VAR	{insertSymbol($2->varname, 1, 1); $2->left=NULL; $$=$2;}
-		| Fname '(' ParamList ')'	{insertFunction($1->varname, $3); $$=$1;}
+		| Fname '(' ParamDeclList ')'	{insertFunction($1->varname, $3); $$=$1;}
 		;
 
-Fname	: VAR	{$$=$1; currFunc=strdup($1->name);}
+Fname	: VAR	{$$=$1; currfunc=strdup($1->varname);}
 
-ParamList	: ParamList ',' Param	{$3->next=$1; $$=$3;}
+ParamDeclList	: ParamDeclList ',' Param	{if(checkParamValidity($1,$3)==0) {
+						printf("Parameters with same name!!\n"); exit(0); }					
+					$3->next=$1; $$=$3;}
 			| Param	{$1->next=NULL; $$=$1;}
 			;
 
-Param	: TYPE VAR	{$$ = createParam($1->type, $2->varname);}
-		;
-
-
-FDefBlock	: FDefBlock FDef	{}
-			| FDef	{}
+ParamList	: ParamList ',' Param	{if(checkParamValidity($1,$3)==0) {
+						printf("Parameters with same name!!\n"); exit(0); }					
+					$1->next=$3; $$=$1;}
+			| Param	{$1->next=NULL; $$=$1;}
 			;
 
-FDef	: TYPE Fname2 '(' VParamList ')' '{' LDeclBlock Body '}'	{}
+Param	: Type VAR	{$$ = createParam($1->type, $2->varname);}
 		;
 
-Fname2	: VAR	{struct Gsymbol *entry = lookup($1->name);
+
+FDefBlock	: FDefBlock FDef	{$2->left = $1; $$=$2;}
+			| FDef	{$$=$1;}
+			;
+
+FDef	: Type Fname2 '(' VParamList ')' '{' LDeclBlock Body '}'	{checkTypeValidity(currfunc, $1->type); 
+																	$$ = makeFuncNode($1->type, currfunc, $8);
+																	resetLocalSpace();
+																	}
+		;
+
+Fname2	: VAR	{struct Gsymbol *entry = gLookup($1->varname);
 				if(entry == NULL) {
 					printf("Function not declared\n"); exit(0);}
-				createLocalTable($1->name);
-				currFunc = strdup($1->name);
+				createLocalTable($1->varname);
+				currfunc = strdup($1->varname);
 				}
 		;
 
-VParamList	: ParamList	{checkParamValidity(currFunc);}
+VParamList	: ParamList	{checkAndCreateParam(currfunc, $1);}
 
 
-
-LDeclBlock	: DECL LDeclList END {}
-			| DECL END	{}
-			;
+ 
+LDeclBlock	: DECL LDeclList ENDDECL {}
+		| 	{}
+		;
 
 LDeclList	: LDeclList LDecl 	{}
-			| LDecl	{}
+		| LDecl	{}
+		;
+
+LDecl 	: Type LVarList	';'	{assignLocType($1->type, $2);}
+		;
+
+LVarList: LVarList ',' LVar	{$3->left=$1; $$=$3;}
+	| LVar	{$1->left=NULL; $$=$1;}			
+
+LVar	: VAR	{insertLocSymbol($1->varname); $1->left=NULL; $$=$1;}
+	| MUL VAR	{insertLocSymbol($2->varname); $2->left=NULL; $$=$2;}
+	; 
+
+Body	: BEG Slist RetStmt END	{$$ = makeBodyNode($2, $3);}
+	;
+
+RetStmt : RETURN expr ';'	{$$ = makeReturnNode($2, currfunc);}
+	;
+
+MainBlock	: INT Main '(' ')' '{' LDeclBlock Body '}'	{$$ = makeFuncNode(INTTYPE, "main", $7);}
 			;
 
-LDecl 	: Type LVarList	';'	{}
-		;
-
-LVarList: LVarList ',' LVar	{}
-		|			
-
-LVar	: VAR	{}
-		| MUL VAR	{}
-		; 
-
-Body	: BEG Slist RetStmt END	{}
-		;
-
-RetStmt : RETURN expr ';'	{}
-		;
-
-MainBlock	: INT MAIN '(' ')' '{' LDeclBlock Body '}'	{}
-			;
-
-
-
-pgm	:	Declarations BEG Slist END 	{$$ = $3; }
-		|	BEG Slist END	{$$ = $2; }
-		|	BEG END			{return;}
-		;
-
-Declarations :	DECL DeclList ENDDECL	{}
-			 |	DECL ENDDECL	{}
-			 ;
-
-DeclList	:	DeclList Decl 	{}
-			|	Decl 	{}
-			;
-
-Decl 	:	Type VarList ';'	{assignType($1->type, $2);}
-		;
+Main    : MAIN {insertMain("main", INTTYPE);
+				createLocalTable("main");
+				currfunc = strdup("main");}
 
 Type 	:	INT {$$ = createTypeNode(INTTYPE);}
 		|	STR {$$ = createTypeNode(STRTYPE);}
 		;
 
-VarList	:	VarList ',' VAR {insertSymbol($3->varname, 1, 1); $3->left=$1; $$=$3;}
-		|	VarList ',' VAR '[' NUM ']' {insertSymbol($3->varname, $5->val, 1); $3->left=$1; $$=$3;}
-		|	VarList ',' VAR '[' NUM ']' '[' NUM ']'	{ insertSymbol($3->varname, $5->val, $8->val); $3->left=$1; $$=$3;}
-		|	VarList ',' MUL VAR 	{insertSymbol($4->varname, 1, 1); $4->left=$1; $$=$4;}
-		|	VAR '[' NUM ']'	{insertSymbol($1->varname, $3->val, 1); $1->left=NULL; $$=$1;}
-		|	VAR '[' NUM ']' '[' NUM ']'	{  insertSymbol($1->varname, $3->val, $6->val); $1->left=NULL; $$=$1;}
-		|	VAR		{insertSymbol($1->varname, 1, 1); $1->left=NULL; $$=$1;}	
-		|	MUL VAR 		{insertSymbol($2->varname, 1, 1); $2->left=NULL; $$=$2;}
-		;
 
 Slist	:	Slist Stmt	{$$ = makeOperatorNode(CONN_, NOTYPE_, $1,$2);}
 		|	Stmt	{$$ = $1;}
+		|   {$$=NULL;}
 		;
 
 Stmt	:	InStmt	{$$ = $1;}
@@ -190,55 +190,72 @@ expr 	:	expr PLUS expr	{$$ = makeOperatorNode(PLUS_, INTTYPE, $1,$3);}
 		|	expr GTE expr	{$$ = makeOperatorNode(GTE_, BOOLTYPE, $1,$3);}
 		|	expr EQ expr	{$$ = makeOperatorNode(EQ_, BOOLTYPE, $1,$3);}
 		|	expr NE expr	{$$ = makeOperatorNode(NE_, BOOLTYPE, $1,$3);}
+		|	expr AND expr	{$$ = makeOperatorNode(AND_, BOOLTYPE, $1, $3);}
+		|	expr OR expr	{$$ = makeOperatorNode(OR_, BOOLTYPE, $1,$3);}
 		|  '(' expr ')'		{$$ = $2;}
 	 	|   NUM				{$$ = $1;}
 	 	|   Variable		{$$ = $1;}
 	 	|	STR1 			{$$ = $1; }
-	 	|	VAR '(' ')'		{}
-	 	|	VAR '(' ArgList ')'	{}
+	 	|	Variable '(' ')'		{}
+	 	|	Variable '(' ArgList ')'	{$$=makeFuncCallNode($1->varname, $3);}
 		;
 
-ArgList	:	ArgList ',' expr	{}
-		|	expr	{}
+ArgList	:	ArgList ',' expr	{$3->mid=$1; $$=$3;}
+		|	expr	{ $$=$1; $1->mid=NULL;}
 		;		
 
-Variable: 	VAR 	{struct Gsymbol *temp = lookup($1->varname);
+Variable: 	VAR 	{struct TableEntry *temp = lookup($1->varname);
 					if(temp == NULL) {
 						printf("%s undeclared\n", $1->varname);	exit(0);}
 					$1->nodetype = VAR_;
-					$1->type = temp->type;
+					if(temp->gentry!=NULL)
+						$1->type = temp->gentry->type;
+					else
+						$1->type = temp->locentry->type;
 					$$=$1;
 					}
-		|	VAR '[' expr ']'	{struct Gsymbol *temp = lookup($1->varname);
+		|	VAR '[' expr ']'	{struct TableEntry *temp = lookup($1->varname);
 								if(temp==NULL) {
 									printf("%s undeclared\n", $1->varname); exit(0);}
 								$1->left = $3;
 								$1->nodetype = ARR_;
-								$1->type = temp->type;
+								if(temp->gentry!=NULL)
+									$1->type = temp->gentry->type;
+								else
+									$1->type = temp->locentry->type;
 								$$ = $1;
 								}
-		|	VAR '[' expr ']' '[' expr ']'	{struct Gsymbol *temp = lookup($1->varname);
+		|	VAR '[' expr ']' '[' expr ']'	{struct TableEntry *temp = lookup($1->varname);
 											if(temp==NULL) {
 												printf("%s undeclared\n", $1->varname); exit(0); }
 											$1->left = $3;
 											$1->right = $6;
 											$1->nodetype = DARR_;
-											$1->type = temp->type;
+											if(temp->gentry!=NULL)
+												$1->type = temp->gentry->type;
+											else
+												$1->type = temp->locentry->type;
 											$$ = $1;
 											}
-		|	MUL VAR 	{struct Gsymbol *temp = lookup($2->varname);
+		|	MUL VAR 	{struct TableEntry *temp = lookup($2->varname);
 						if(temp == NULL) {
 							printf("%s undeclared\n", $2->varname); exit(0);}
 						$2->nodetype = PTR_;
-						$2->type = temp->type;
+						if(temp->gentry!=NULL)
+							$2->type = temp->gentry->type;
+						else
+							$2->type = temp->locentry->type;
 						$$ = $2;
 
 						}
-		|	'&' VAR 	{struct Gsymbol *temp = lookup($2->varname);
+		|	'&' VAR 	{struct TableEntry *temp = lookup($2->varname);
 						if(temp == NULL) {
 							printf("%s undeclared\n", $2->varname); exit(0);}
 						$2->nodetype = ADDPTR_;
-						$2->type = temp->type;
+						if(temp->gentry!=NULL)
+							$2->type = temp->gentry->type;
+						else
+							$2->type = temp->locentry->type;
 						$$ = $2;}
 		;
 

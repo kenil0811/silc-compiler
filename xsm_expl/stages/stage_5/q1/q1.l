@@ -28,8 +28,8 @@
 "write"	{return WRITE;}
 "if" 	{return IF;}
 "then"	{return THEN;}
-"else"	{return ELSE;}
-"while"	{return WHILE;}
+"else"	{ return ELSE;}
+"while"	{ return WHILE;}
 "do"	{return DO;}
 "endif"	{return ENDIF;}
 "endwhile"	{return ENDWHILE;}
@@ -39,12 +39,16 @@
 "until"	{return UNTIL;}
 "decl"	{return DECL;}
 "enddecl"	{return ENDDECL;}
-"int"	{return INT;}
+"int"	{ return INT;}
+"main"  { return MAIN;}
+"return"    {return RETURN;}
 "str"	{return STR;}
 [ \t]	{}
 "["		{return *yytext;}
 "]"		{return *yytext;}
-[()=;,&]	{return *yytext;}
+"&&"	{return AND;}
+"||"	{return OR;}
+[()=;,&{}]	{ return *yytext;}
 [\n]	{}
 [0-9]+	{number = atoi(yytext); yylval.t = makeLeafNumNode(number, INTTYPE, NUM_); return NUM;}
 [a-zA-Z]+[a-zA-Z0-9_]*	{arr= (char *)malloc(20*sizeof(char)); strcpy(arr,yytext);

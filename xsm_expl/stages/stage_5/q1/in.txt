@@ -2,9 +2,12 @@ decl
 int a,b;
 int *t1, *t2, *t3;
 enddecl
+int main() {
 begin
 	read(a);
 	t1=&a;
 	*t1 = *t1 + 1;
 	write(a);
+	return 0;
 end
+}
