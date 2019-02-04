@@ -79,8 +79,8 @@ struct tnode* makeLeafStringNode(char* var, int type, int nodetype) {
     return createTree(NULL, type, var, nodetype, NULL, NULL, NULL, NULL, NULL);
 }
 
-struct tnode* createTypeNode(int type) {
-    return createTree(NULL, type, NULL, NONE_, NULL, NULL, NULL, NULL, NULL);
+struct tnode* createTypeNode(int type, char *tname) {
+    return createTree(NULL, type, tname, NONE_, NULL, NULL, NULL, NULL, NULL);
 }
 
 struct tnode* makeAssignNode(int nodetype, int type, struct tnode *l,struct tnode *r) {

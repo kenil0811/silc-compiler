@@ -1,0 +1,32 @@
+type
+	list {
+		int a;
+		str b;
+		list next;
+	}
+endtype
+decl
+	int p,q,r,s;
+	list l;
+	int function(int a, str b);
+enddecl
+int function(int a, str b) {
+	begin
+		return b+b;
+	end
+}
+
+int main() {
+	decl
+		int n, result;
+	enddecl
+	begin
+		read(n);
+		if(n+n==0)	then
+			write("yoo");
+		endif;
+		result = function(n+1, "hii");
+		write(result);
+		return 0;
+	end
+}
