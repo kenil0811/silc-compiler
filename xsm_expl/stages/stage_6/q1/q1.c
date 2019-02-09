@@ -121,7 +121,7 @@ struct tnode *makeFieldNode(struct tnode *field) {
 }
 
 struct tnode* makeLeafNumNode(int n, struct Typetable* type, int nodetype) {
-    return createTree(n, type, NULL, nodetype ,NULL ,NULL, NULL, NULL, NULL);
+    return createTree(n, type, "n", nodetype ,NULL ,NULL, NULL, NULL, NULL);
 }
 
 struct tnode* makeLeafVarNode(char* var, int nodetype) {
@@ -144,7 +144,6 @@ struct tnode* makeAssignNode(int nodetype, struct Typetable* type, struct tnode 
     struct tnode *temp = createTree(NULL, type, NULL, nodetype, NULL, l, NULL, r, NULL);
     //printf("%d,%d,%d,%d,%d,%d\n", nodetype, type, l->type, r->type, l->nodetype, r->nodetype);
     if(l->type != r->type && r->type!=typeLookup("null") && !isPredeclared(r->varname)) {
-        printf("%s\n",r->varname );
         printf("h2\n");
         printf("lol\n");
         printf("%s %s\n", l->type->name, r->type->name);
@@ -192,6 +191,10 @@ struct tnode* makeIfElseNode(int nodetype, struct Typetable* type, struct tnode 
 }
 
 struct tnode* makeIONode(int nodetype,  struct tnode *l){
+    if(l->type != typeLookup("int") && l->type!=typeLookup("str")) {
+        printf("invalid format\n");
+        exit(0);
+    }
     return createTree(NULL, NULL, NULL, nodetype, NULL, l, NULL, NULL, NULL);
 }
 
@@ -443,35 +446,8 @@ struct tnode *arglist;
         case NUM_   :   reg = getReg();
                         fprintf(f, "MOV R%d, %d\n", reg, t->val);
                         return reg;
-        case VAR_   :       //fprintf(f, "//in var\n");
-                            if(t->left != NULL) {
-                            //fprintf(f, "//inside\n");
-                        //    printf("%s\n", t->varname);
-                            struct Typetable *type;
-                            if(t->entry->locentry != NULL)
-                                type = t->entry->locentry->type;
-                            else
-                                type = t->entry->gentry->type;
-                            reg = getAddr(t, f);
-                            fprintf(f, "MOV R%d, [R%d]\n", reg, reg);
-                            /*while(t->left != NULL) {
-                                printf("%s\n", t->left->varname);
-                                struct Fieldlist *field = fieldLookup(type->fields, t->left->varname);
-                                int fieldindex = field->fieldindex;
-                                fprintf(f, "ADD R%d, %d\n", reg, fieldindex);
-                                fprintf(f, "MOV R%d, [R%d]\n", reg, reg);
-                                type = field->type;
-                                t=t->left;
-                            }*/
-                           // fprintf(f, "outside\n" );
-                            return reg;
-                        }
-                        //printf("%s\n", t->varname);
-                        //printf("====\n");
-                        reg = getReg();
-                        reg1 = getAddr(t, f);
-                        fprintf(f, "MOV R%d, [R%d]\n",reg, reg1);
-                        freeReg();
+        case VAR_   :   reg = getAddr(t, f);
+                        fprintf(f, "MOV R%d, [R%d]\n", reg, reg);
                         return reg;
         case PTR_   :   reg = getReg();
                         reg1 = getAddr(t, f);

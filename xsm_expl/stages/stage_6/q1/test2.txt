@@ -4,6 +4,10 @@ type
 		str b;
 		list next;
 	}
+	marks {
+		int mark;
+		list l;
+	}
 endtype
 decl
 	int p,q,r,s;
@@ -19,14 +23,18 @@ int function(int a, str b) {
 int main() {
 	decl
 		int n, result;
+		marks m;
 	enddecl
 	begin
-		read(n);
-		if(n+n==0)	then
-			write("yoo");
-		endif;
-		result = function(n+1, "hii");
-		write(result);
+		n = initialize();
+		m = alloc();
+		m.l = alloc();
+		m.mark = 5;
+		m.l.a=6;
+		m.l.b="kenil";
+		write(m.mark);
+		write(m.l.a);
+		write(m.l.b);
 		return 0;
 	end
 }

@@ -43,7 +43,7 @@ int inOrder(bst h){
   if(h!=null) then
      
     in=inOrder(h.left);
-    write(h.a);
+    write(h.left);
     in=inOrder(h.right);
   endif;
   return 1;

@@ -2,7 +2,7 @@ type
   List
   {
     int data;
-    List nextt;
+    List next;
   }
 endtype
 
@@ -28,22 +28,26 @@ int main()
       read(x);
       p=alloc();
       p.data=x;
-      p.nextt=null;
+      p.next=null;
       if (head==null) then
       head=p;
       q=p;
       else
-      q.nextt=p;
-      q=q.nextt;
+      q.next=p;
+      q=q.next;
       endif;
       
       length=length-1;
     endwhile;
 
+    write("lol1");
+    write(head.next.data);
+    write("lol2");
+
     p=head;
     while(p!=null)  do
       write(p.data);
-      p=p.nextt;
+      p=p.next;
     endwhile;
 
     return 1;
