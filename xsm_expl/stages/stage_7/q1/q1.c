@@ -24,7 +24,22 @@ struct tnode *makeNullNode() {
     createTree(-1, typeLookup("null"), NULL, NULL, NUM_, NULL, NULL, NULL, NULL, NULL);
 }
 
-struct tnode* makeReturnNode(struct tnode *expr, char *funcname) {
+struct tnode* makeReturnNode(struct Classtable *centry, struct tnode *expr, char *funcname) {
+    if(centry != NULL) {
+        printf("hkhkh\n");
+        
+        
+        struct Memberfunclist *function = cFuncLookup(centry->vfuncptr, funcname);
+        printf("vgbgf\n");
+        if(expr->type != function->type) {
+            printf("In function %s:\n", funcname);
+            printf("Return type mismatch\n");
+            exit(0);
+        }
+        printf("arey\n");
+        return createTree(NULL, expr->type, NULL, NULL, RET_, NULL, expr, NULL, NULL, NULL);
+    }
+
     struct Gsymbol *gentry = gLookup(funcname);
     if(expr->type != gentry->type) {
         printf("In function %s:\n", funcname);
@@ -83,14 +98,34 @@ struct tnode* makeFuncCallNode(char *funcname, struct tnode *arglist) {
 }
 
 struct tnode *makeClassFuncCallNode(struct Classtable *centry, char *funcname, struct tnode *arglist) {
-	
+	struct Memberfunclist *function = cFuncLookup(centry, funcname);
+    if(function == NULL) {
+        printf("Method %s not declared\n", funcname);
+        exit(0);
+    }
+    struct Param *paramlist = function->paramlist;
+    struct tnode *arg = arglist;
+    while(paramlist!= NULL && arg!=NULL) {
+        if(paramlist->type != arg->type) {
+            printf("Type mismatch in function call to %s\n", funcname);
+            exit(0);
+        }
+        paramlist=paramlist->next;
+        arg=arg->mid;
+    }
+    if(paramlist!=NULL || arg!=NULL) {
+        printf("few/more Arguments in function call to %s\n", funcname);
+        exit(0);
+    }
+
+    return createTree(NULL, function->type, centry, funcname, MCALL_, NULL, NULL, NULL, NULL, arglist);
 }
 
 
 struct Typetable *findResultantType(struct tnode *field, struct Typetable *type) {
     struct Fieldlist *fl = fieldLookup(type->fields, field->varname);
     if(fl == NULL) {
-        printf("filed %s not declared\n", field->varname);
+        printf("field %s not declared\n", field->varname);
         exit(0);
     }
     field->type = fl->type;
@@ -108,6 +143,12 @@ struct tnode *makeFieldNode(struct tnode *field) {
         printf("::%s\n", temp->varname);
         temp=temp->left;
     }*/
+    if(strcmp(field->varname, "self") == 0) {
+        struct Fieldlist *f = fieldLookup(field->ctype->memberfield, field->left->varname);
+        field->type = f->type;
+        return field;
+    }
+
 
     struct TableEntry *entry = lookup(field->varname);
     if(entry == NULL) {
@@ -139,11 +180,11 @@ struct tnode* makeLeafStringNode(char* var, struct Typetable* type, int nodetype
 }
 
 struct tnode* createTypeNode(char *typename) {
-    if(typeLookup(typename)==NULL && Clookup(typename)==NULL) {
+    if(typeLookup(typename)==NULL && cLookup(typename)==NULL) {
         printf("Type %s not declared\n", typename);
         exit(0);
     }
-    return createTree(NULL, typeLookup(typename), Clookup(typename), typename, NONE_, NULL, NULL, NULL, NULL, NULL);
+    return createTree(NULL, typeLookup(typename), cLookup(typename), typename, NONE_, NULL, NULL, NULL, NULL, NULL);
 }
 
 struct tnode* makeAssignNode(int nodetype, struct Typetable* type, struct tnode *l,struct tnode *r) {

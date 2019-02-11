@@ -41,9 +41,13 @@
 "until"	{return UNTIL;}
 "decl"	{return DECL;}
 "enddecl"	{return ENDDECL;}
-"int"	{ return INT;}
+"int"	{printf("hi1\n"); return INT;}
 "main"  { return MAIN;}
-"return"    {return RETURN;}
+"return"    {printf("hyyyy\n"); return RETURN;}
+"class"	{printf("hi22\n"); return CLASS;}
+"endclass"	{printf("hi3\n"); return ENDCLASS;}
+"self"	{printf("hi4\n"); return SELF;}
+"new"	{return NEW;}
 "str"	{ return STR;}
 [ \t]	{}
 "["		{return *yytext;}
@@ -51,8 +55,8 @@
 "&&"	{return AND;}
 "||"	{return OR;}
 "."		{return *yytext;}
-"null"	{return NULLTOKEN;}
-[()=;,&{}]	{ return *yytext;}
+"null"	{printf("haa\n"); return NULLTOKEN;}
+[()=;,&{}]	{ return *yytext; }
 [\n]	{}
 [0-9]+	{number = atoi(yytext); yylval.t = makeLeafNumNode(number, typeLookup("int"), NUM_); return NUM;}
 [a-zA-Z]+[a-zA-Z0-9_]*	{arr= (char *)malloc(20*sizeof(char)); strcpy(arr,yytext);

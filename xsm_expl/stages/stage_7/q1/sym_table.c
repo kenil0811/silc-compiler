@@ -102,15 +102,23 @@ int checkParamValidity(struct Param *list, struct Param *param) {
 
 void checkTypeValidity(char *funcname, struct Typetable *type) {
 	int flag=0;
-	if(currclassptr != NULL)
-		struct Memberfunctionlist *entry = cFuncLookup(funcname);
-	else
-		struct Gsymbol *entry = gLookup(funcname);
-	if(entry->type != type) {
-		printf("%d,%d\n", entry->type,type);
-		printf("Function %s return type mismatch\n", funcname);
-		exit(0);
+	if(currclassptr != NULL) {
+		struct Memberfunclist *entry = cFuncLookup(currclassptr ,funcname);
+		if(entry->type != type) {
+			printf("%d,%d\n", entry->type,type);
+			printf("Function %s return type mismatch\n", funcname);
+			exit(0);
+		}
 	}
+	else {
+		struct Gsymbol *entry = gLookup(funcname);
+		if(entry->type != type) {
+			printf("%d,%d\n", entry->type,type);
+			printf("Function %s return type mismatch\n", funcname);
+			exit(0);
+	}
+	}
+	
 }
 
 void insertFunction(char *varname, struct Param *list) {
@@ -125,6 +133,7 @@ void insertFunction(char *varname, struct Param *list) {
 	entry->flabel = flabel++;
     entry->next = gsymtable;
     gsymtable = entry;
+    printf("hmm\n");
     return;
 }
 
@@ -138,22 +147,27 @@ struct Param* createParam(struct Typetable *type, char *name) {
 
 void checkAndCreateParam(char *funcname, struct Param *list) {
 	struct Ltable *ltable = funcLookup(funcname);
-	struct Param *list2;
+	struct Param *list2, *temp2;
 	if(currclassptr != NULL) {
-		struct Memberfunctionlist *entry = cFuncLookup(funcname);
+		struct Memberfunclist *entry = cFuncLookup(currclassptr ,funcname);
 		list2 = entry->paramlist;
+		if(ltable==NULL || entry==NULL) {
+			printf("Function not declared\n");
+			exit(0);
+	}
 	}
 	else {
 		struct Gsymbol *entry = gLookup(funcname);
 		list2 = entry->paramlist;
+		if(ltable==NULL || entry==NULL) {
+			printf("Function not declared\n");
+			exit(0);
+	}
 	}
 	
-	if(ltable==NULL || entry==NULL) {
-		printf("Function not declared\n");
-		exit(0);
-	}
+	
 	struct Param *list1 = list;
-	
+	temp2 = list2;
 	
 	while(list1!=NULL && list2!=NULL) {
 		struct Lentry *locentry = (struct Lentry*)malloc(sizeof(struct Lentry));
@@ -169,7 +183,7 @@ void checkAndCreateParam(char *funcname, struct Param *list) {
 	}
 
 	struct Lentry *temp=ltable->entry;
-	list2=entry->paramlist;
+	list2=temp2;
 	while(temp!=NULL && list2!=NULL) {
 		if(temp->type!=list2->type || strcmp(temp->name,list2->name)!=0) {
 			printf("%s,,%s\n",temp->type->name, list2->type->name);
@@ -218,7 +232,7 @@ void resetLocalSpace() {
 	loc_add=1;
 }
 
-void assignType (struct Tnode* node, struct tnode *varlist) {
+void assignType (struct tnode* node, struct tnode *varlist) {
 	struct Gsymbol *temp;
 	while(varlist != NULL) {
 		temp = gLookup(varlist->varname);
@@ -408,7 +422,7 @@ void initializeTypeTable() {
 
 }
 
-struct Classtable *CLookup(char *classname) {
+struct Classtable *cLookup(char *classname) {
 	if(classname==NULL)
 		return NULL;
 	struct Classtable *temp = classtable;
@@ -421,13 +435,13 @@ struct Classtable *CLookup(char *classname) {
 }
 
 struct Classtable *insertClass(char *classname, char *parentname) {
-	if(CLookup(classname) != NULL) {
+	if(cLookup(classname) != NULL) {
 		printf("Class %s already declared\n", classname);
 		exit(0);
 	}
 	struct Classtable *entry = (struct Classtable*)malloc(sizeof(struct Classtable));
 	entry->name = classname;
-	entry->parentptr = CLookup(parentname);
+	entry->parentptr = cLookup(parentname);
 	entry->memberfield = NULL;
 	entry->vfuncptr = NULL;
 	entry->classindex = classindex++;
@@ -462,18 +476,26 @@ void insertClassField(struct Classtable *classentry, struct Typetable *type, cha
 	field->next = classentry->memberfield;
 	classentry->memberfield = field;
 	
-	if(ctype->memberfield->fieldindex > 8) {
+	if(classentry->memberfield->fieldindex > 8) {
 		printf("Class %s has more than 8 fields\n", classentry->name);
 		exit(0);
 	}
 }
 
-struct Memberfunctionlist *cFuncLookup(struct Classtable *classentry, char *funcname) {
-	struct Memberfunctionlist *temp = classentry->vfuncptr;
+struct Memberfunclist *cFuncLookup(struct Classtable *classentry, char *funcname) {
+	struct Memberfunclist *temp = classentry->vfuncptr;
+	printf("wsedff\n");
 	while(temp != NULL) {
-		if(strcmp(temp->name, funcname) == 0)
+		printf("poi\n");
+		printf("%s\n", temp->name);
+		if(strcmp(temp->name, funcname) == 0) {
+			printf("doi\n");
 			return temp;
+		}
+		printf("loi\n");
+		temp=temp->next;
 	}
+	printf("sgg\n");
 	return NULL;
 }
 
@@ -482,8 +504,7 @@ void insertClassFunction(struct Classtable *classentry, struct Typetable *type, 
 		printf("Method %s already declared\n", funcname);
 		exit(0);
 	}
-
-	struct Memberfunctionlist *function = (struct Memberfunctionlist*)malloc(sizeof(struct Memberfunctionlist));
+	struct Memberfunclist *function = (struct Memberfunclist*)malloc(sizeof(struct Memberfunclist));
 	function->name = strdup(funcname);
 	function->type = type;
 	function->paramlist = paramlist;

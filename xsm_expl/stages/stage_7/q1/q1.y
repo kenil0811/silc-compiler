@@ -14,9 +14,10 @@
 	struct Param *p;
 }
 %token NUM STR1 VAR BEG END READ WRITE IF THEN ELSE WHILE DO ENDWHILE ENDIF BREAK CONTINUE REPEAT UNTIL DECL ENDDECL INT STR MAIN RETURN
-%token PLUS MINUS MUL DIV MOD LT GT LTE GTE NE EQ AND OR TYPE ENDTYPE NULLTOKEN
-%type <t> NUM VAR STR1 STR expr Slist Stmt InStmt OutStmt AsgStmt IfStmt WhileStmt BrkStmt DoWhileStmt Field
+%token PLUS MINUS MUL DIV MOD LT GT LTE GTE NE EQ AND OR TYPE ENDTYPE NULLTOKEN CLASS ENDCLASS SELF NEW
+%type <t> NUM VAR STR1 STR expr Slist Stmt InStmt OutStmt AsgStmt IfStmt WhileStmt BrkStmt DoWhileStmt Field 
 %type <t> RetStmt Type Variable FDefBlock MainBlock GDecl GVarList LVarList LVar GVar Fname Body FDef ArgList
+%type <t> ClassDefBlock ClassDefList ClassDef Cname CMethodDef NewStmt FieldFunction SELF
 %type <p> ParamList Param ParamDeclList
 %nonassoc LT GT LTE GTE EQ NE
 %left PLUS MINUS
@@ -74,7 +75,7 @@ Type	: INT	{$$ = createTypeNode("int"); }
 
 //classes
 ClassDefBlock	: CLASS ClassDefList ENDCLASS	{$$ = $2; currclassptr = NULL;}
-				|
+				|	{}
 				;
 
 ClassDefList	: ClassDefList ClassDef	{$2->left=$1; $$=$2;}
@@ -91,14 +92,14 @@ CFieldList	: CFieldList CField	{}
 			|
 			;
 
-CField	: Type VAR	{insertClassField(currclassptr, $1->type, $2->varname);}
+CField	: Type VAR ';'	{insertClassField(currclassptr, $1->type, $2->varname);}
 		;
 
 CMethodDecl	: CMethodDecl MethodDecl	{}
 			| MethodDecl	{}
 			;
 
-MethodDecl	: Type Var '(' ParamDeclList ')' ';' {insertClassFunction(currclassptr, $1->type, $2->name, $3);}
+MethodDecl	: Type VAR '(' ParamDeclList ')' ';' {insertClassFunction(currclassptr, $1->type, $2->varname, $4);}
 			;
 
 CMethodDef	: CMethodDef FDef	{$2->left=$1; $$=$2;}
@@ -129,12 +130,13 @@ GVar	: VAR	{insertSymbol($1->varname, 1, 1); $1->left=NULL; $$=$1;}
 		| Fname '(' ParamDeclList ')'	{insertFunction($1->varname, $3); $$=$1;}
 		;
 
-Fname	: VAR	{$$=$1; currfunc=strdup($1->varname);}
+Fname	: VAR	{$$=$1; currfunc=strdup($1->varname); printf("lol3\n");}
 
 ParamDeclList	: ParamDeclList ',' Param	{if(checkParamValidity($1,$3)==0) {
 						printf("Parameters with same name!!\n"); exit(0); }					
 					$3->next=$1; $$=$3;}
 			| Param	{$1->next=NULL; $$=$1;}
+			|	{$$=NULL;}
 			;
 
 Param	: Type VAR	{$$ = createParam($1->type, $2->varname);}
@@ -153,7 +155,7 @@ FDef	: Type Fname2 '(' VParamList ')' '{' LDeclBlock Body '}'	{checkTypeValidity
 
 
 Fname2	: VAR	{if(currclassptr != NULL) {
-					struct Memberfunclist *entry = cFuncLookup($1->varname);
+					struct Memberfunclist *entry = cFuncLookup(currclassptr,$1->varname);
 					if(entry == NULL) {
 						printf("Function not declared\n"); exit(0);}
 				}
@@ -173,6 +175,7 @@ ParamList	: Param ',' ParamList 	{if(checkParamValidity($3,$1)==0) {
 						printf("Parameters with same name!!\n"); exit(0); }					
 					$1->next=$3; $$=$1;}
 			| Param	{$1->next=NULL; $$=$1;}
+			|	{$$ = NULL;}
 			;
  
 LDeclBlock	: DECL LDeclList ENDDECL {}
@@ -196,7 +199,7 @@ LVar	: VAR	{insertLocSymbol($1->varname); $1->left=NULL; $$=$1;}
 Body	: BEG Slist RetStmt END	{$$ = makeBodyNode($2, $3);}
 	;
 
-RetStmt : RETURN expr ';'	{$$ = makeReturnNode($2, currfunc);}
+RetStmt : RETURN expr ';'	{$$ = makeReturnNode(currclassptr ,$2, currfunc); printf("werty\n");}
 	;
 
 
@@ -223,7 +226,7 @@ Stmt	:	InStmt	{$$ = $1;}
 		|	BrkStmt	{$$ = $1;}
 		|	DoWhileStmt	{$$ = $1;}
 		|	NewStmt	{$$ = $1;}
-		|	DelStmt	{$$=$1;}
+	//	|	DelStmt	{$$=$1;}
 		;
 
 InStmt	:	READ '(' Variable ')' ';'	{$$ = makeIONode(READ_, $3);}
@@ -260,7 +263,7 @@ NewStmt	: VAR '=' NEW '(' VAR ')' ';'	{struct Gsymbol *gentry = gLookup($1->varn
 											printf("Object %s is not of type %s\n",$1->varname, $5->varname);
 											exit(0);
 										}
-										$$ = makeAssignNode($1, makeFuncCallNode("new", $5));
+										$$ = makeAssignNode(ASSIGN_, typeLookup("null"),$1, makeFuncCallNode("new", $5));
 										}
 
 
@@ -281,6 +284,7 @@ expr 	:	expr PLUS expr	{$$ = makeOperatorNode(PLUS_, typeLookup("int"), $1,$3);}
 	 	|   NUM				{$$ = $1;}
 	 	|   Variable		{$$ = $1;}
 	 	|	STR1 			{$$ = $1; }
+	 	| 	FieldFunction	{$$=$1;}
 	 	|	VAR '(' ')'		{$$=makeFuncCallNode($1->varname, NULL);}
 	 	|	VAR '(' ArgList ')'	{$$=makeFuncCallNode($1->varname, $3);}
 	 	|	NULLTOKEN		{$$=makeNullNode();}
@@ -296,15 +300,21 @@ Field	:	VAR	'.' Field	{$1->left=$3; $$=$1;}
 								printf("Use of self outside class not allowed\n"); exit(0); }
 							$1 = makeLeafVarNode("self", VAR_);
 							$1->ctype = currclassptr;
-							$1->left=$3; $$=$1;
+							$1->left = $3;
+							$$=$1;
 							}
 		;
 
 FieldFunction	: SELF '.' VAR '(' ArgList ')'	{if(currclassptr == NULL) {
 													printf("Use of self outside class not allowed\n"); exit(0); }
-												$$ = makeClassFuncCallNode(currclassptr, $3->name, $5);
+												$$ = makeClassFuncCallNode(currclassptr, $3->varname, $5);
 												}
-				| VAR '.' VAR '(' ArgList ')'	{}
+				| VAR '.' VAR '(' ArgList ')'	{struct Gsymbol *gentry = gLookup($1->varname);
+												if(gentry == NULL) {
+													printf("Object %s not declared\n", $1->varname); exit(0);
+												}
+												$$ = makeClassFuncCallNode(gentry->ctype, $3->varname, $5);
+												}
 				| Field '.' VAR '(' ArgList ')' {}
 				;
 

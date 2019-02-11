@@ -38,12 +38,14 @@
 #define AND_ 41
 #define OR_ 42
 #define UTYPE_ 43
+#define MCALL_ 44
 
 
 
 typedef struct tnode{
 	int val;			//value of for the expression tree
 	struct Typetable *type;		//type of variable
+	struct Classtable *ctype;
 	char *varname;		//name of variables for id nodes
 	int nodetype;		//information about non-leaf nodes (read/write/connector/+-*/)
 	struct tnode *left,*right, *mid, *arglist;  	//left and right branches
@@ -120,7 +122,7 @@ struct Classtable {
 	struct Fieldlist *memberfield;        //pointer to Fieldlist 
 	struct Memberfunclist *vfuncptr;      //pointer to Memberfunclist
 	struct Classtable *parentptr;         //pointer to the parent's class table
-	int class_index;                      //position of the class in the virtual function table
+	int classindex;                      //position of the class in the virtual function table
 	int fieldcount;                       //count of fields
   	int methodcount;                      //count of methods
 	struct Classtable *next;       //pointer to next class table entry
@@ -164,10 +166,12 @@ struct Gsymbol *gLookup(char *name);
 struct TableEntry *lookup(char *varname);
 
 int getLocation();
-void assignType(struct Typetable *type, struct tnode *varlist);
+void assignType(struct tnode *node, struct tnode *varlist);
 void displayTable();
 void freeAllReg();
 void resetLocalSpace();
 struct Ltable* funcLookup(char *funcname);
 struct Typetable *typeLookup(char *typename);
 struct Fieldlist *fieldLookup(struct Fieldlist *list, char *fieldname);
+struct Memberfunclist *cFuncLookup(struct Classtable *classentry, char *funcname);
+struct Classtable *cLookup(char *classname);

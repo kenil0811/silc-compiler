@@ -84,7 +84,11 @@ extern int yydebug;
     OR = 294,
     TYPE = 295,
     ENDTYPE = 296,
-    NULLTOKEN = 297
+    NULLTOKEN = 297,
+    CLASS = 298,
+    ENDCLASS = 299,
+    SELF = 300,
+    NEW = 301
   };
 #endif
 /* Tokens.  */
@@ -128,6 +132,10 @@ extern int yydebug;
 #define TYPE 295
 #define ENDTYPE 296
 #define NULLTOKEN 297
+#define CLASS 298
+#define ENDCLASS 299
+#define SELF 300
+#define NEW 301
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -139,7 +147,7 @@ union YYSTYPE
 	struct tnode *t;
 	struct Param *p;
 
-#line 143 "y.tab.h" /* yacc.c:1909  */
+#line 151 "y.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
