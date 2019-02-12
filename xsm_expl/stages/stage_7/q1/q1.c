@@ -26,17 +26,17 @@ struct tnode *makeNullNode() {
 
 struct tnode* makeReturnNode(struct Classtable *centry, struct tnode *expr, char *funcname) {
     if(centry != NULL) {
-        printf("hkhkh\n");
+        //printf("hkhkh\n");
         
         
-        struct Memberfunclist *function = cFuncLookup(centry->vfuncptr, funcname);
-        printf("vgbgf\n");
+        struct Memberfunclist *function = cFuncLookup(centry, funcname);
+        //printf("vgbgf\n");
         if(expr->type != function->type) {
             printf("In function %s:\n", funcname);
             printf("Return type mismatch\n");
             exit(0);
         }
-        printf("arey\n");
+        //printf("arey\n");
         return createTree(NULL, expr->type, NULL, NULL, RET_, NULL, expr, NULL, NULL, NULL);
     }
 
@@ -200,6 +200,16 @@ struct tnode* makeAssignNode(int nodetype, struct Typetable* type, struct tnode 
     return temp;
 
 }    
+
+void f(struct Classtable *centry) {
+	printf("------------------\n");
+	struct Memberfunclist *func = centry->vfuncptr;
+	while(func != NULL) {
+		printf("%s,\n",func->name);
+		func=func->next;
+	}
+	printf("---------------------------\n");
+}
 
 struct tnode* makeOperatorNode(int nodetype, struct Typetable* type, struct tnode *l,struct tnode *r) {
     if (nodetype!=CONN_ && nodetype!=BREAK_ && nodetype!=CONT_) {

@@ -1862,7 +1862,8 @@ yyreduce:
 
   case 50:
 #line 157 "q1.y" /* yacc.c:1646  */
-    {if(currclassptr != NULL) {
+    {//f(currclassptr);
+					if(currclassptr != NULL) {
 					struct Memberfunclist *entry = cFuncLookup(currclassptr,(yyvsp[0].t)->varname);
 					if(entry == NULL) {
 						printf("Function not declared\n"); exit(0);}
@@ -1874,7 +1875,6 @@ yyreduce:
 				}			
 				createLocalTable((yyvsp[0].t)->varname);
 				currfunc = strdup((yyvsp[0].t)->varname);
-				printf("%s-------\n", currfunc);
 				}
 #line 1880 "y.tab.c" /* yacc.c:1646  */
     break;
@@ -1913,7 +1913,7 @@ yyreduce:
 
   case 56:
 #line 183 "q1.y" /* yacc.c:1646  */
-    {printf("---------%s\n",currfunc );}
+    {}
 #line 1918 "y.tab.c" /* yacc.c:1646  */
     break;
 
@@ -1967,7 +1967,7 @@ yyreduce:
 
   case 65:
 #line 203 "q1.y" /* yacc.c:1646  */
-    {printf("sdf %s\n", currfunc); (yyval.t) = makeReturnNode(currclassptr ,(yyvsp[-1].t), currfunc); printf("werty\n");}
+    {(yyval.t) = makeReturnNode(currclassptr ,(yyvsp[-1].t), currfunc); printf("werty\n");}
 #line 1972 "y.tab.c" /* yacc.c:1646  */
     break;
 

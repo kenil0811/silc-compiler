@@ -484,18 +484,18 @@ void insertClassField(struct Classtable *classentry, struct Typetable *type, cha
 
 struct Memberfunclist *cFuncLookup(struct Classtable *classentry, char *funcname) {
 	struct Memberfunclist *temp = classentry->vfuncptr;
-	printf("wsedff\n");
+	//printf("wsedff\n");
 	while(temp != NULL) {
-		printf("poi\n");
+	//	printf("poi\n");
 		printf("%s\n", temp->name);
 		if(strcmp(temp->name, funcname) == 0) {
-			printf("doi\n");
+	//		printf("doi\n");
 			return temp;
 		}
-		printf("loi\n");
+	//	printf("loi\n");
 		temp=temp->next;
 	}
-	printf("sgg\n");
+	//printf("sgg\n");
 	return NULL;
 }
 

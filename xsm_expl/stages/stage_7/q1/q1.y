@@ -154,7 +154,8 @@ FDef	: Type Fname2 '(' VParamList ')' '{' LDeclBlock Body '}'	{checkTypeValidity
 		;
 
 
-Fname2	: VAR	{if(currclassptr != NULL) {
+Fname2	: VAR	{//f(currclassptr);
+					if(currclassptr != NULL) {
 					struct Memberfunclist *entry = cFuncLookup(currclassptr,$1->varname);
 					if(entry == NULL) {
 						printf("Function not declared\n"); exit(0);}
