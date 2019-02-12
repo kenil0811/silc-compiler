@@ -63,7 +63,7 @@ struct tnode* makeFuncNode(struct Typetable* type,char *funcname,struct tnode *b
 }
 
 int isPredeclared(char *funcname) {
-    if(strcmp(funcname,"initialize")==0 || strcmp(funcname,"alloc")==0 || strcmp(funcname,"free")==0)
+    if(strcmp(funcname,"initialize")==0 || strcmp(funcname,"alloc")==0 || strcmp(funcname,"free")==0 || strcmp(funcname,"new")==0)
         return 1;
     return 0;
 }

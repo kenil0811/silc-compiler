@@ -41,12 +41,12 @@
 "until"	{return UNTIL;}
 "decl"	{return DECL;}
 "enddecl"	{return ENDDECL;}
-"int"	{printf("hi1\n"); return INT;}
+"int"	{ return INT;}
 "main"  { return MAIN;}
-"return"    {printf("hyyyy\n"); return RETURN;}
-"class"	{printf("hi22\n"); return CLASS;}
-"endclass"	{printf("hi3\n"); return ENDCLASS;}
-"self"	{printf("hi4\n"); return SELF;}
+"return"    { return RETURN;}
+"class"	{ return CLASS;}
+"endclass"	{return ENDCLASS;}
+"self"	{ return SELF;}
 "new"	{return NEW;}
 "str"	{ return STR;}
 [ \t]	{}
@@ -55,7 +55,7 @@
 "&&"	{return AND;}
 "||"	{return OR;}
 "."		{return *yytext;}
-"null"	{printf("haa\n"); return NULLTOKEN;}
+"null"	{ return NULLTOKEN;}
 [()=;,&{}]	{ return *yytext; }
 [\n]	{}
 [0-9]+	{number = atoi(yytext); yylval.t = makeLeafNumNode(number, typeLookup("int"), NUM_); return NUM;}

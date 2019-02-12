@@ -25,7 +25,7 @@
 
 %%
 
-program : TypeDefBlock ClassDefBlock GDeclBlock FDefBlock MainBlock {//showTables();
+program : TypeDefBlock ClassDefBlock GDeclBlock FDefBlock MainBlock {showTables();
 													fprintf(out, "%d\nMAIN\n%d\n%d\n%d\n%d\n%d\n%d\n",0,0,0,0,0,0,0);
 													fprintf(out, "MOV SP,%d\n",location+1);
 													//printf("lol\n");
@@ -36,9 +36,10 @@ program : TypeDefBlock ClassDefBlock GDeclBlock FDefBlock MainBlock {//showTable
 													fprintf(out,"\nPOP R2\nPOP R2\n POP R2\n POP R2\n POP R2\n");
 													return;
 													}
-		| TypeDefBlock ClassDefBlock GDeclBlock MainBlock {fprintf(out, "%d\nMAIN\n%d\n%d\n%d\n%d\n%d\n%d\n",0,0,0,0,0,0,0);
+		| TypeDefBlock ClassDefBlock GDeclBlock MainBlock {showTables();
+											fprintf(out, "%d\nMAIN\n%d\n%d\n%d\n%d\n%d\n%d\n",0,0,0,0,0,0,0);
 											fprintf(out, "MOV SP,%d\n",location+1);
-											codeGen($4, out);
+											//codeGen($4, out);
 											fprintf(out, " MOV R2,\"Exit\"\nPUSH R2\nPUSH R2\nPUSH R2\nPUSH R2\nPUSH R2\nCALL 0\n");
 											fprintf(out, "POP R2\nPOP R2\n POP R2\n POP R2\n POP R2\n");
 											return; 
@@ -200,7 +201,7 @@ LVar	: VAR	{insertLocSymbol($1->varname); $1->left=NULL; $$=$1;}
 Body	: BEG Slist RetStmt END	{$$ = makeBodyNode($2, $3);}
 	;
 
-RetStmt : RETURN expr ';'	{$$ = makeReturnNode(currclassptr ,$2, currfunc); printf("werty\n");}
+RetStmt : RETURN expr ';'	{$$ = makeReturnNode(currclassptr ,$2, currfunc);}
 	;
 
 
@@ -254,7 +255,7 @@ DoWhileStmt	: DO Slist WHILE '(' expr ')' ';'	{$$ = makeOperatorNode(DOWHILE_, t
 			| REPEAT Slist UNTIL '(' expr ')' ';'	{$$ = makeOperatorNode(DOWHILE_, typeLookup("bool"), $2, $5);}
 			;
 
-NewStmt	: VAR '=' NEW '(' VAR ')' ';'	{struct Gsymbol *gentry = gLookup($1->varname);
+NewStmt	: Variable '=' NEW '(' VAR ')' ';'	{struct Gsymbol *gentry = gLookup($1->varname);
 										if(gentry==NULL) {
 											printf("%s not declared\n", $1->varname);
 											exit(0); }
@@ -286,13 +287,13 @@ expr 	:	expr PLUS expr	{$$ = makeOperatorNode(PLUS_, typeLookup("int"), $1,$3);}
 	 	|   Variable		{$$ = $1;}
 	 	|	STR1 			{$$ = $1; }
 	 	| 	FieldFunction	{$$=$1;}
-	 	|	VAR '(' ')'		{$$=makeFuncCallNode($1->varname, NULL);}
 	 	|	VAR '(' ArgList ')'	{$$=makeFuncCallNode($1->varname, $3);}
 	 	|	NULLTOKEN		{$$=makeNullNode();}
 		;
 
 ArgList	:	ArgList ',' expr	{$3->mid=$1; $$=$3;}
 		|	expr	{ $$=$1; $1->mid=NULL;}
+		|	{$$=NULL;}
 		;		
 
 Field	:	VAR	'.' Field	{$1->left=$3; $$=$1;}

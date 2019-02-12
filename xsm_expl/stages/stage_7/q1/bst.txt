@@ -19,32 +19,14 @@ bstclass{
     int postOrder_fun(bst h);
   enddecl
 
-  int init() {
-    begin
-			self.root=null;
-			return 1;
-		end
-	}
-
-	bst getroot() {
-		begin
-			return self.root;
-		end
-	}
-
-	int setroot(bst n1) {
-		begin
-			self.root=n1;
-			return 1;
-		end
-	}
+ 
 
 	bst getnode(int key){
 		decl
 			bst temp;
 		enddecl
 		begin
-			temp=alloc();
+			temp = alloc();
 			temp.a=key;
 			temp.left=null;
 			temp.right=null;

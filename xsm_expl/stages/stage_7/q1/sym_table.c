@@ -279,10 +279,44 @@ void showTables () {
 		tt=tt->next;
 		printf("\n");
 	}
+
+	struct Classtable *centry = classtable;
+	printf("----Class Tables-----\n");
+	while(centry != NULL) {
+		printf("\nclass name:%s, classindex:%d, filedcount:%d, methodcount:%d\n", centry->name, centry->classindex, centry->fieldcount, centry->methodcount);
+		printf("--Field members--\n");
+		struct Fieldlist *f = centry->memberfield;
+		while(f != NULL) {
+			printf("name:%s, index:%d, type:%s, class:%s\n", f->name, f->fieldindex, f->type->name, f->ctype->name);
+			f=f->next;
+		}
+		printf("\n--Methods--\n");
+		struct Memberfunclist *method = centry->vfuncptr;
+		while(method != NULL) {
+			printf("\nmethod name:%s, type:%s, funcposition:%d, flabel:%d\n",method->name, method->type->name, method->funcposition, method->flabel );
+			printf("-Arguments-\n");
+			struct Param *pl = method->paramlist;
+			while(pl!=NULL) {
+				printf("%s, ", pl->name);
+				pl=pl->next;
+			}
+			printf("\n");
+			method=method->next;
+
+		}
+		centry = centry->next;
+	}
+
 	struct Gsymbol *temp = gsymtable;
-	printf("----Global Table-----\n");
+	printf("\n----Global Table-----\n");
 	while(temp != NULL) {
-		printf("name:%s, type:%s, size1:%d, size2:%d start location:%d, flabel:%d\n", temp->name, temp->type->name, temp->size1, temp->size2, temp->binding, temp->flabel);
+		if(temp->type != NULL) {
+			printf("name:%s, type:%s, size1:%d, size2:%d start location:%d, flabel:%d\n", temp->name, temp->type->name, temp->size1, temp->size2, temp->binding, temp->flabel);
+		}
+		else {
+			printf("name:%s, class type:%s, size1:%d, size2:%d start location:%d, flabel:%d\n", temp->name, temp->ctype->name, temp->size1, temp->size2, temp->binding, temp->flabel);
+		}
+		
 		struct Param *list = temp->paramlist;
 		while(list!=NULL) {
 			printf("%s, ", list->name);
@@ -487,7 +521,7 @@ struct Memberfunclist *cFuncLookup(struct Classtable *classentry, char *funcname
 	//printf("wsedff\n");
 	while(temp != NULL) {
 	//	printf("poi\n");
-		printf("%s\n", temp->name);
+		//printf("%s\n", temp->name);
 		if(strcmp(temp->name, funcname) == 0) {
 	//		printf("doi\n");
 			return temp;
