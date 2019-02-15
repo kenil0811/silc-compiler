@@ -39,6 +39,7 @@
 #define OR_ 42
 #define UTYPE_ 43
 #define MCALL_ 44
+#define NEW_ 45
 
 
 
@@ -175,3 +176,5 @@ struct Typetable *typeLookup(char *typename);
 struct Fieldlist *fieldLookup(struct Fieldlist *list, char *fieldname);
 struct Memberfunclist *cFuncLookup(struct Classtable *classentry, char *funcname);
 struct Classtable *cLookup(char *classname);
+struct Lentry* locLookup(struct Lentry *locentry, char *varname);
+struct Fieldlist *cFieldLookup(struct Classtable *classentry, char *fieldname);

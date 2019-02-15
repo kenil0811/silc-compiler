@@ -53,13 +53,13 @@ struct tnode* makeBodyNode(struct tnode *slist, struct tnode *retstmt) {
     return createTree(NULL, NULL, NULL, NULL, BODY_, NULL, slist, NULL, retstmt, NULL);
 }
 
-struct tnode* makeFuncNode(struct Typetable* type,char *funcname,struct tnode *body) {
+struct tnode* makeFuncNode(struct Classtable *centry ,struct Typetable* type,char *funcname,struct tnode *body) {
     struct Gsymbol *gentry = gLookup(funcname);
     struct Ltable *function = funcLookup(funcname);
     struct TableEntry *tentry = (struct TableEntry*)malloc(sizeof(struct TableEntry));
     tentry->gentry = gentry;
     tentry->fentry = function;
-    return createTree(NULL, type, NULL, funcname, FUNC_, tentry, NULL, NULL, body, NULL);    
+    return createTree(NULL, type, centry, funcname, FUNC_, tentry, NULL, NULL, body, NULL);    
 }
 
 int isPredeclared(char *funcname) {
@@ -97,8 +97,22 @@ struct tnode* makeFuncCallNode(char *funcname, struct tnode *arglist) {
     return createTree(NULL, gentry->type, NULL, funcname, FCALL_, tentry, NULL, NULL, NULL, arglist);
 }
 
-struct tnode *makeClassFuncCallNode(struct Classtable *centry, char *funcname, struct tnode *arglist) {
-	struct Memberfunclist *function = cFuncLookup(centry, funcname);
+struct tnode *makeNewNode(int nodetype, struct tnode *node) {
+    return createTree(NULL, NULL, NULL, NULL, nodetype, NULL, node, NULL, NULL, NULL);
+}
+
+struct tnode *makeClassFuncCallNode(struct Classtable *centry, char *var1, char *var2, char *funcname, struct tnode *arglist) {
+	
+	struct Classtable *class;
+	if(var2 != NULL) {
+		struct Fieldlist *field = fieldLookup(centry->memberfield, var2);
+		class = field->ctype;
+	}
+	else {
+		class = centry;
+	}
+
+	struct Memberfunclist *function = cFuncLookup(class, funcname);
     if(function == NULL) {
         printf("Method %s not declared\n", funcname);
         exit(0);
@@ -117,8 +131,11 @@ struct tnode *makeClassFuncCallNode(struct Classtable *centry, char *funcname, s
         printf("few/more Arguments in function call to %s\n", funcname);
         exit(0);
     }
+    struct tnode *t = makeLeafVarNode(var1,VAR_);
+    if(var2 != NULL)
+    	t->left = makeLeafVarNode(var2, VAR_);
 
-    return createTree(NULL, function->type, centry, funcname, MCALL_, NULL, NULL, NULL, NULL, arglist);
+    return createTree(NULL, function->type, centry, funcname, MCALL_, NULL, t, NULL, NULL, arglist);
 }
 
 
@@ -146,6 +163,8 @@ struct tnode *makeFieldNode(struct tnode *field) {
     if(strcmp(field->varname, "self") == 0) {
         struct Fieldlist *f = fieldLookup(field->ctype->memberfield, field->left->varname);
         field->type = f->type;
+        //field->left->ctype = f->ctype;
+        //printf("hohoh\n");
         return field;
     }
 
@@ -175,6 +194,10 @@ struct tnode* makeLeafVarNode(char* var, int nodetype) {
     return createTree(NULL, NULL, NULL, var, nodetype, lookup(var), NULL, NULL, NULL, NULL);
 }
 
+struct tnode *makeSelfNode(struct Classtable *ctype) {
+	return createTree(NULL, NULL, ctype, "self", VAR_, NULL, NULL, NULL, NULL, NULL);
+}
+
 struct tnode* makeLeafStringNode(char* var, struct Typetable* type, int nodetype) {
     return createTree(NULL, type, NULL, var, nodetype, NULL, NULL, NULL, NULL, NULL);
 }
@@ -192,7 +215,6 @@ struct tnode* makeAssignNode(int nodetype, struct Typetable* type, struct tnode 
     //printf("%d,%d,%d,%d,%d,%d\n", nodetype, type, l->type, r->type, l->nodetype, r->nodetype);
     if(l->type != r->type && r->type!=typeLookup("null") && !isPredeclared(r->varname)) {
 	    printf("h2\n");
-        printf("lol\n");
         printf("%s %s\n", l->type->name, r->type->name);
         printf("TYPE MISMATCH\n");
         exit(0);
@@ -227,6 +249,8 @@ struct tnode* makeOperatorNode(int nodetype, struct Typetable* type, struct tnod
             }}
         else if(l->type != r->type && r->type!=typeLookup("null")) {
             printf("h2\n");
+            printf("hmmm\n");
+            printf("%d\n",nodetype);
             printf("%s %s\n",l->type->name, r->type->name);
             printf("TYPE MISMATCH\n");
             exit(0);
@@ -366,7 +390,13 @@ int getAddr(struct tnode *t, FILE *f) {
                         }
                         while(t->left != NULL) {
                             fprintf(f, "MOV R%d, [R%d]\n", reg, reg);
-                            struct Fieldlist *field = fieldLookup(type->fields, t->left->varname);
+                            struct Fieldlist *field;
+                            if(t->ctype != NULL) {
+                            	field = cFieldLookup(t->ctype, t->left->varname);
+                            }
+                            else {
+                            	field = fieldLookup(type->fields, t->left->varname);
+                            }
                             int fieldindex = field->fieldindex;
                             fprintf(f, "ADD R%d, %d\n", reg, fieldindex);
                             //fprintf(f, "MOV R%d, [R%d]\n", reg, reg);
@@ -410,12 +440,92 @@ int codeGen(struct tnode *t, FILE *f) {
     if (t==NULL)
         return 0;
 
-int reg1,reg2,addr,label3,label4,reg,pos,temp_l1,temp_l2, tlabel;
+    //printf("%d\n", t->nodetype);
+
+int reg1,reg2,addr,label3,label4,reg,pos,temp_l1,temp_l2, tlabel, use_count;
 struct tnode *arglist;
+struct Gsymbol *gentry;
 
     switch(t->nodetype) {
+        case MCALL_ :   arglist = t->arglist;
+                        use_count = saveReg(f);
+                        freeAllReg();
+                        struct Fieldlist *field = NULL;
+						if(t->left->varname == "self") {
+							struct Ltable *ltable = funcLookup(t->varname);
+							struct Lentry *locentry = locLookup(ltable->entry, "self");
+							pos = locentry->binding;
+							reg = getReg();
+							fprintf(f, "MOV R%d, BP\n", reg);
+                            fprintf(f, "ADD R%d, %d\n", reg, pos);
+                            fprintf(f, "MOV R%d, [R%d]\n", reg, reg);
+							if(t->left->left != NULL) {
+								field = fieldLookup(t->ctype->memberfield, t->left->left->varname);
+								fprintf(f, "ADD R%d, %d\n", reg, field->fieldindex); 
+							}
+							fprintf(f, "PUSH R%d\n", reg);
+							freeReg();
+						}   
+						else {
+							struct Gsymbol *gentry = gLookup(t->left->varname);
+							reg = getReg();
+							fprintf(f, "MOV R%d, %d\n", reg, gentry->binding);
+							fprintf(f, "MOV R%d, [R%d]\n", reg, reg);
+							fprintf(f, "PUSH R%d\n", reg);
+							freeReg();
+						}    
+						while(arglist != NULL) {
+                            reg = codeGen(arglist, f);
+                            fprintf(f, "PUSH R%d\n", reg);
+                         //   fprintf(f, "//pushed arguemnt\n" );
+                            freeReg();
+                            arglist=arglist->mid;
+                        }
+                        struct Memberfunclist *function;
+						if(field != NULL) {
+							function = cFuncLookup(field->ctype, t->varname);
+						}
+						else {						
+                        	function = cFuncLookup(t->ctype, t->varname);
+                        }
+                        fprintf(f, "PUSH R0\n");
+                        fprintf(f, "CALL F%d\n",function->flabel);
+                        reg_num = use_count;
+                        reg = getReg();
 
-        case FUNC_  :   funclabel = t->entry->gentry->flabel;
+                        fprintf(f, "POP R%d\n", reg);
+
+                        arglist = t->arglist;
+                        while(arglist != NULL) {
+                            fprintf(f, "POP R0\n");
+                            arglist=arglist->mid;
+                        }
+                        fprintf(f, "POP R0\n");    
+                        restoreReg(use_count, f);
+
+                        return reg;
+        case NEW_   :   reg = getReg();
+        				if(strcmp(t->left->varname, "self") == 0) {
+        					struct Fieldlist *fl = fieldLookup(t->left->ctype->memberfield, t->left->left->varname);
+        					fprintf(f, "MOV R%d, BP\n", reg);
+        					fprintf(f, "ADD R%d, %d\n", fl->fieldindex);
+				        }
+				        else {
+				        	gentry = gLookup(t->left->varname);
+	        				fprintf(f, "MOV R%d, %d\n", reg, gentry->binding); 
+	        			}                   
+                        reg1 = allocCodeGen(f);
+                        fprintf(f, "MOV [R%d], R%d\n", reg, reg1);
+                        freeReg();
+                        freeReg();
+                        return 0;	
+        case FUNC_  :   if(t->ctype != NULL) {
+        					struct Memberfunclist *function = cFuncLookup(t->ctype, t->varname);
+        					funclabel = function->flabel;
+				        }
+				        else {
+	        				funclabel = t->entry->gentry->flabel;
+				        }
                         struct Lentry *locentry = t->entry->fentry->entry;
                         if(strcmp(t->entry->fentry->funcname,"main")==0) {
                             int loc = getLocation();
@@ -423,6 +533,7 @@ struct tnode *arglist;
                         } else {
                             fprintf(f,"F%d:\n", funclabel); //label for call
                         }
+                        //fprintf(f, "///reg:: %d\n", getReg());
                         fprintf(f, "PUSH BP\nMOV BP,SP\n"); //push old BP and change bp to SP
                         while(locentry!=NULL) {
                             if(locentry->binding>0) 
@@ -431,6 +542,7 @@ struct tnode *arglist;
                         }
                         t->right->entry = t->entry;
                         codeGen(t->right, f);  //body
+                        freeAllReg();
                         codeGen(t->left, f);   //next function
                         return 0;
         
@@ -471,7 +583,7 @@ struct tnode *arglist;
                             }
 
                             arglist = t->arglist;
-                            int use_count = saveReg(f);
+                            use_count = saveReg(f);
                             freeAllReg();
 
                             while(arglist != NULL) {

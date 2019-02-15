@@ -201,6 +201,15 @@ void checkAndCreateParam(char *funcname, struct Param *list) {
 		printf("Arguments mismatch\n");
 		exit(0);
 	}
+
+	if(currclassptr != NULL) {
+		struct Lentry *locentry = (struct Lentry*)malloc(sizeof(struct Lentry));
+		locentry->name = "self";
+		locentry->type = typeLookup("null");
+		locentry->binding = getLocalArgSpace();
+		locentry->next = ltable->entry;
+		ltable->entry=locentry;
+	}
 }
 
 struct Gsymbol* gLookup (char *varname) {
@@ -287,7 +296,10 @@ void showTables () {
 		printf("--Field members--\n");
 		struct Fieldlist *f = centry->memberfield;
 		while(f != NULL) {
-			printf("name:%s, index:%d, type:%s, class:%s\n", f->name, f->fieldindex, f->type->name, f->ctype->name);
+			if(f->type != NULL)
+				printf("name:%s, index:%d, type:%s, class:-\n", f->name, f->fieldindex, f->type->name);
+			else
+				printf("name:%s, index:%d, type:-, class:%s\n", f->name, f->fieldindex, f->ctype->name);
 			f=f->next;
 		}
 		printf("\n--Methods--\n");
@@ -332,7 +344,10 @@ void showTables () {
 	    printf("\n--%s--\n",ltable->funcname);
 	    struct Lentry *locentry = ltable->entry;
 	    while(locentry != NULL) {
+	    	//printf("name:%s,, type:%s\n",locentry->name , locentry->type->name);
+	        if(strcmp(locentry->name,"self") != 0) {
 	        printf("name:%s, type:%s, binding:%d\n",locentry->name, locentry->type->name, locentry->binding);
+	        }
 	        locentry = locentry->next;
 	    }
 	    ltable = ltable->next;
@@ -496,15 +511,16 @@ struct Fieldlist *cFieldLookup(struct Classtable *classentry, char *fieldname) {
 	return NULL;
 }
  
-void insertClassField(struct Classtable *classentry, struct Typetable *type, char *fieldname) {
+void insertClassField(struct Classtable *classentry, struct tnode *type, char *fieldname) {
 	if(cFieldLookup(classentry, fieldname) != NULL) {
 		printf("Field %s already declared\n", fieldname);
 		exit(0);
 	}
 	struct Fieldlist *field = (struct Fieldlist*)malloc(sizeof(struct Fieldlist));
 	field->name = fieldname;
-	field->type = type;
-	field->ctype = classentry;
+	field->type = type->type;
+	field->ctype = type->ctype;
+	//field->ctype = classentry;
 	
 	field->fieldindex = classentry->fieldcount++;
 	field->next = classentry->memberfield;
@@ -518,18 +534,12 @@ void insertClassField(struct Classtable *classentry, struct Typetable *type, cha
 
 struct Memberfunclist *cFuncLookup(struct Classtable *classentry, char *funcname) {
 	struct Memberfunclist *temp = classentry->vfuncptr;
-	//printf("wsedff\n");
 	while(temp != NULL) {
-	//	printf("poi\n");
-		//printf("%s\n", temp->name);
 		if(strcmp(temp->name, funcname) == 0) {
-	//		printf("doi\n");
 			return temp;
 		}
-	//	printf("loi\n");
 		temp=temp->next;
 	}
-	//printf("sgg\n");
 	return NULL;
 }
 

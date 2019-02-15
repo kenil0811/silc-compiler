@@ -25,10 +25,12 @@
 
 %%
 
-program : TypeDefBlock ClassDefBlock GDeclBlock FDefBlock MainBlock {showTables();
+program : TypeDefBlock ClassDefBlock GDeclBlock FDefBlock MainBlock {//showTables();
 													fprintf(out, "%d\nMAIN\n%d\n%d\n%d\n%d\n%d\n%d\n",0,0,0,0,0,0,0);
 													fprintf(out, "MOV SP,%d\n",location+1);
 													//printf("lol\n");
+													codeGen($2, out);
+													freeAllReg();
 													codeGen($4, out);
 													freeAllReg();
 													codeGen($5, out);
@@ -36,10 +38,12 @@ program : TypeDefBlock ClassDefBlock GDeclBlock FDefBlock MainBlock {showTables(
 													fprintf(out,"\nPOP R2\nPOP R2\n POP R2\n POP R2\n POP R2\n");
 													return;
 													}
-		| TypeDefBlock ClassDefBlock GDeclBlock MainBlock {showTables();
+		| TypeDefBlock ClassDefBlock GDeclBlock MainBlock {//showTables();
 											fprintf(out, "%d\nMAIN\n%d\n%d\n%d\n%d\n%d\n%d\n",0,0,0,0,0,0,0);
 											fprintf(out, "MOV SP,%d\n",location+1);
-											//codeGen($4, out);
+											codeGen($2, out);
+											freeAllReg();
+											codeGen($4, out);
 											fprintf(out, " MOV R2,\"Exit\"\nPUSH R2\nPUSH R2\nPUSH R2\nPUSH R2\nPUSH R2\nCALL 0\n");
 											fprintf(out, "POP R2\nPOP R2\n POP R2\n POP R2\n POP R2\n");
 											return; 
@@ -93,7 +97,7 @@ CFieldList	: CFieldList CField	{}
 			|
 			;
 
-CField	: Type VAR ';'	{insertClassField(currclassptr, $1->type, $2->varname);}
+CField	: Type VAR ';'	{insertClassField(currclassptr, $1, $2->varname);}
 		;
 
 CMethodDecl	: CMethodDecl MethodDecl	{}
@@ -131,7 +135,7 @@ GVar	: VAR	{insertSymbol($1->varname, 1, 1); $1->left=NULL; $$=$1;}
 		| Fname '(' ParamDeclList ')'	{insertFunction($1->varname, $3); $$=$1;}
 		;
 
-Fname	: VAR	{$$=$1; currfunc=strdup($1->varname); printf("lol3\n");}
+Fname	: VAR	{$$=$1; currfunc=strdup($1->varname); }
 
 ParamDeclList	: ParamDeclList ',' Param	{if(checkParamValidity($1,$3)==0) {
 						printf("Parameters with same name!!\n"); exit(0); }					
@@ -149,7 +153,7 @@ FDefBlock	: FDefBlock FDef	{$2->left = $1; $$=$2;}
 			;
 
 FDef	: Type Fname2 '(' VParamList ')' '{' LDeclBlock Body '}'	{checkTypeValidity(currfunc, $1->type); 
-																	$$ = makeFuncNode($1->type, currfunc, $8);
+																	$$ = makeFuncNode(currclassptr ,$1->type, currfunc, $8);
 																	resetLocalSpace();
 																	}
 		;
@@ -206,7 +210,7 @@ RetStmt : RETURN expr ';'	{$$ = makeReturnNode(currclassptr ,$2, currfunc);}
 
 
 //main definition
-MainBlock	: INT Main '(' ')' '{' LDeclBlock Body '}'	{$$ = makeFuncNode(typeLookup("int"), "main", $7);}
+MainBlock	: INT Main '(' ')' '{' LDeclBlock Body '}'	{$$ = makeFuncNode(currclassptr ,typeLookup("int"), "main", $7);}
 			;
 
 Main    : MAIN {insertMain("main", typeLookup("int"));
@@ -255,17 +259,30 @@ DoWhileStmt	: DO Slist WHILE '(' expr ')' ';'	{$$ = makeOperatorNode(DOWHILE_, t
 			| REPEAT Slist UNTIL '(' expr ')' ';'	{$$ = makeOperatorNode(DOWHILE_, typeLookup("bool"), $2, $5);}
 			;
 
-NewStmt	: Variable '=' NEW '(' VAR ')' ';'	{struct Gsymbol *gentry = gLookup($1->varname);
-										if(gentry==NULL) {
-											printf("%s not declared\n", $1->varname);
-											exit(0); }
-										$1->ctype = gentry->ctype;
-										struct Classtable *centry = cLookup($5->varname);
-										if(centry != $1->ctype) {
-											printf("Object %s is not of type %s\n",$1->varname, $5->varname);
-											exit(0);
+NewStmt	: Variable '=' NEW '(' VAR ')' ';'	{struct Gsymbol *gentry;
+										struct tnode *t;
+										if(strcmp($1->varname, "self") == 0) {
+											t=$1->left;
+											struct Fieldlist *field = fieldLookup(currclassptr->memberfield, t->varname);
+											t->ctype = field->ctype;
+											//printf("%s--\n", t->ctype->name);
 										}
-										$$ = makeAssignNode(ASSIGN_, typeLookup("null"),$1, makeFuncCallNode("new", $5));
+										else {
+											gentry = gLookup($1->varname);
+											if(gentry==NULL) {
+												printf("%s not declared\n", $1->varname);
+												exit(0); }
+											t = $1;
+											$1->ctype = gentry->ctype;
+										}
+										//printf("yyy\n");
+										//printf("%s\n", t->ctype->name);
+										struct Classtable *centry = cLookup($5->varname);
+										if(centry != t->ctype) {
+											printf("Object %s is not of type %s\n",t->varname, $5->varname);
+											exit(0);
+										}//printf("kkk\n");
+										$$ = makeNewNode(NEW_, $1);
 										}
 
 
@@ -285,7 +302,7 @@ expr 	:	expr PLUS expr	{$$ = makeOperatorNode(PLUS_, typeLookup("int"), $1,$3);}
 		|  '(' expr ')'		{$$ = $2;}
 	 	|   NUM				{$$ = $1;}
 	 	|   Variable		{$$ = $1;}
-	 	|	STR1 			{$$ = $1; }
+	 	|	STR1 			{$$ = $1;}
 	 	| 	FieldFunction	{$$=$1;}
 	 	|	VAR '(' ArgList ')'	{$$=makeFuncCallNode($1->varname, $3);}
 	 	|	NULLTOKEN		{$$=makeNullNode();}
@@ -300,7 +317,14 @@ Field	:	VAR	'.' Field	{$1->left=$3; $$=$1;}
 		|	VAR '.'	VAR	{$1->left=$3; $$=$1;}
 		|	SELF '.' VAR	{if(currclassptr == NULL) {
 								printf("Use of self outside class not allowed\n"); exit(0); }
-							$1 = makeLeafVarNode("self", VAR_);
+							$1 = makeSelfNode(currclassptr);
+							$1->ctype = currclassptr;
+							$1->left = $3;
+							$$=$1;
+							}
+		|	SELF '.' Field	{if(currclassptr == NULL) {
+								printf("Use of self outside class not allowed\n"); exit(0); }
+							$1 = makeSelfNode(currclassptr);
 							$1->ctype = currclassptr;
 							$1->left = $3;
 							$$=$1;
@@ -309,15 +333,23 @@ Field	:	VAR	'.' Field	{$1->left=$3; $$=$1;}
 
 FieldFunction	: SELF '.' VAR '(' ArgList ')'	{if(currclassptr == NULL) {
 													printf("Use of self outside class not allowed\n"); exit(0); }
-												$$ = makeClassFuncCallNode(currclassptr, $3->varname, $5);
+												$$ = makeClassFuncCallNode(currclassptr, "self", NULL, $3->varname, $5);
 												}
 				| VAR '.' VAR '(' ArgList ')'	{struct Gsymbol *gentry = gLookup($1->varname);
 												if(gentry == NULL) {
 													printf("Object %s not declared\n", $1->varname); exit(0);
 												}
-												$$ = makeClassFuncCallNode(gentry->ctype, $3->varname, $5);
+												$$ = makeClassFuncCallNode(gentry->ctype, $1->varname, NULL, $3->varname, $5);
 												}
-				| Field '.' VAR '(' ArgList ')' {}
+				| SELF '.' VAR '.' VAR '(' ArgList ')' {if(currclassptr == NULL) {
+															printf("Use of self outside class not allowed\n"); exit(0); }
+														struct Fieldlist *field = fieldLookup(currclassptr->memberfield, $3->varname);
+														if(field == NULL) {
+															printf("Object %s not declared\n", $3->varname);
+															exit(0);
+														}
+														$$ = makeClassFuncCallNode(currclassptr, "self", $3->varname, $5->varname, $7);
+														}
 				;
 
 Variable:	Field	{$$ = makeFieldNode($1);}
