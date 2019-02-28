@@ -1,0 +1,40 @@
+type
+	list {
+		int a;
+		str b;
+		list next;
+	}
+	marks {
+		int mark;
+		list l;
+	}
+endtype
+decl
+	int p,q,r,s;
+	list l;
+	int function(int a, str b);
+enddecl
+int function(int a, str b) {
+	begin
+		return b+b;
+	end
+}
+
+int main() {
+	decl
+		int n, result;
+		marks m;
+	enddecl
+	begin
+		n = initialize();
+		m = alloc();
+		m.l = alloc();
+		m.mark = 5;
+		m.l.a=6;
+		m.l.b="kenil";
+		write(m.mark);
+		write(m.l.a);
+		write(m.l.b);
+		return 0;
+	end
+}
